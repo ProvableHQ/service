@@ -1,0 +1,76 @@
+version: 2.1
+
+commands:
+  setup_environment:
+    description: "Setup environment"
+    parameters:
+      cache_key:
+        type: string
+        default: aleo-stable-linux-cache
+    steps:
+      - run: set -e
+      - setup_remote_docker
+      - run:
+          name: Prepare environment and install dependencies
+          command: |
+            export SCCACHE_CACHE_SIZE=200M
+            export WORK_DIR="$CIRCLE_WORKING_DIRECTORY/.cache/sccache"
+            export SCCACHE_DIR="$CIRCLE_WORKING_DIRECTORY/.cache/sccache"
+            mkdir -p "$CIRCLE_WORKING_DIRECTORY/.bin"
+            wget https://github.com/mozilla/sccache/releases/download/0.2.13/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz
+            tar -C "$CIRCLE_WORKING_DIRECTORY/.bin" -xvf sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz
+            mv $CIRCLE_WORKING_DIRECTORY/.bin/sccache-0.2.13-x86_64-unknown-linux-musl/sccache $CIRCLE_WORKING_DIRECTORY/.bin/sccache
+            export PATH="$PATH:$CIRCLE_WORKING_DIRECTORY/.bin"
+            export RUSTC_WRAPPER="sccache"
+            rm -rf "$CIRCLE_WORKING_DIRECTORY/.cargo/registry"
+            sudo apt-get update && sudo apt-get install -y clang llvm-dev llvm pkg-config xz-utils make libssl-dev libssl-dev
+      - restore_cache:
+          keys:
+            - << parameters.cache_key >>
+
+  clear_environment:
+    description: "Clear environment"
+    parameters:
+      cache_key:
+        type: string
+        default: aleo-stable-linux-cache
+    steps:
+      - run: (sccache -s||true)
+      - run: set +e
+      - save_cache:
+          key: << parameters.cache_key >>
+          paths:
+            - .cache/sccache
+            - .cargo
+
+  install_rust_nightly:
+    description: "Install Rust nightly toolchain"
+    steps:
+      - run: rustup toolchain install nightly-x86_64-unknown-linux-gnu
+
+jobs:
+  authorize-service:
+    docker:
+      - image: cimg/rust:1.73
+    resource_class: xlarge
+    steps:
+      - checkout
+      - install_rust_nightly
+      - setup_environment:
+          cache_key: aleo-fmt-cache
+      - run:
+          name: Check style and benchmarks
+          no_output_timeout: 15m
+          command: |
+            cd authorize-service
+            cargo fmt --all -- --check
+            cargo bench
+      - clear_environment:
+          cache_key: aleo-fmt-cache
+
+workflows:
+  version: 2
+
+  main-workflow:
+    jobs:
+      - authorize-service
