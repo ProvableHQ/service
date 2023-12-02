@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
-use authorize_service::*;
-use execute_service::*;
-use std::str::FromStr;
-
-use anyhow::{bail, Result};
-use reqwest::Client;
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{Field, FromBytes, Network, PrivateKey, Testnet3, ToBytes, Uniform, U64, ProgramID, Identifier, Value};
+
+use authorize_service::*;
+use execute_service::*;
+
+use anyhow::{bail, Result};
+use rand_chacha::rand_core::SeedableRng;
+use reqwest::Client;
+use std::str::FromStr;
 
 const KEYGEN_URL: &str = "http://localhost:8080/keygen";
 const AUTHORIZE_URL: &str = "http://localhost:8080/authorize";
@@ -40,7 +42,7 @@ async fn main() -> Result<()> {
     let client = Client::new();
 
     // Initialize a random number generator.
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
     // Generate a seed.
     let seed = Field::<CurrentNetwork>::rand(rng);

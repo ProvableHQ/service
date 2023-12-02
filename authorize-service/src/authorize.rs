@@ -24,7 +24,7 @@ thread_local! {
 pub fn authorize(request: AuthorizeRequest) -> Result<AuthorizeResponse> {
     PROCESS.with(|process| {
         // Initialize the RNG.
-        let rng = &mut rand::thread_rng();
+        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
         // Authorize the function.
         let function_authorization = process.borrow().authorize::<CurrentAleo, _>(

@@ -29,7 +29,7 @@ pub fn execute(request_bytes: Bytes) -> Result<Vec<u8>> {
         // Deserialize the `ExecuteRequest`.
         let execute_request = ExecuteRequest::from_bytes_le(&request_bytes)?;
         // Initialize an RNG.
-        let rng = &mut rand::thread_rng();
+        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
         // Get the function authorization.
         let function_authorization = execute_request.function_authorization;

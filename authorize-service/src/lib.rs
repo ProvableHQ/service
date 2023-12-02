@@ -32,12 +32,14 @@ pub use routes::*;
 pub mod signature;
 pub use signature::*;
 
-use anyhow::Result;
 use snarkvm::circuit::AleoV0;
 use snarkvm::prelude::{
     Address, Authorization, Deserialize, Environment, Field, Network, PrivateKey, Process,
     Serialize, Signature, Testnet3, ToBytes,
 };
+
+use anyhow::Result;
+use rand_chacha::rand_core::SeedableRng;
 use std::cell::RefCell;
 use std::str::FromStr;
 
