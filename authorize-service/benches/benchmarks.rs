@@ -22,7 +22,6 @@ use snarkvm::prelude::{
     Address, FromBytes, Identifier, Literal, PrivateKey, Process, ProgramID, Signature, Value, U64,
 };
 
-
 use authorize_service::{
     authorize, keygen, sign, verify, AuthorizeRequest, CurrentNetwork, SignRequest, VerifyRequest,
 };

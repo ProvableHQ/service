@@ -61,7 +61,9 @@ pub fn execute(request_bytes: Bytes) -> Result<Vec<u8>> {
         let execution = trace.prove_execution::<CurrentAleo, _>(&locator, rng)?;
 
         // Execute the fee authorization.
-        let (_, mut trace) = process.borrow().execute::<CurrentAleo, _>(fee_authorization, rng)?;
+        let (_, mut trace) = process
+            .borrow()
+            .execute::<CurrentAleo, _>(fee_authorization, rng)?;
 
         // Prepare the trace.
         trace.prepare(query)?;

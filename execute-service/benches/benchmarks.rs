@@ -18,17 +18,14 @@
 extern crate criterion;
 
 use snarkvm::circuit::AleoV0;
-use snarkvm::prelude::{
-    Address, Literal, PrivateKey, Process, Value, U64, ToBytes,
-};
+use snarkvm::prelude::{Address, Literal, PrivateKey, Process, ToBytes, Value, U64};
 
-use execute_service::{CurrentNetwork, execute, ExecuteRequest};
+use execute_service::{execute, CurrentNetwork, ExecuteRequest};
 
 use criterion::{BatchSize, Criterion};
 use rand_chacha::rand_core::SeedableRng;
 use std::str::FromStr;
 use warp::hyper::body::Bytes;
-
 
 fn bench_execute_transfer_public(c: &mut Criterion) {
     let process = Process::<CurrentNetwork>::load().unwrap();
@@ -47,25 +44,15 @@ fn bench_execute_transfer_public(c: &mut Criterion) {
     let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
     let function_authorization = process
-        .authorize::<AleoV0, _>(
-            &private_key,
-            program_id,
-            function_name,
-            inputs.iter(),
-            rng,
-        )
+        .authorize::<AleoV0, _>(&private_key, program_id, function_name, inputs.iter(), rng)
         .unwrap();
 
     // Retrieve the execution ID.
     let execution_id = function_authorization.to_execution_id().unwrap();
 
-    let fee_authorization = process.authorize_fee_public::<AleoV0, _>(
-        &private_key,
-        100000,
-        1000,
-        execution_id,
-        rng,
-    ).unwrap();
+    let fee_authorization = process
+        .authorize_fee_public::<AleoV0, _>(&private_key, 100000, 1000, execution_id, rng)
+        .unwrap();
 
     let request = ExecuteRequest {
         function_authorization,
