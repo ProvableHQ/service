@@ -29,7 +29,7 @@ pub fn execute(request_bytes: Bytes) -> Result<Vec<u8>> {
         // Deserialize the `ExecuteRequest`.
         let execute_request = ExecuteRequest::from_bytes_le(&request_bytes)?;
         // Initialize an RNG.
-        let rng = &mut rand::thread_rng();
+        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
         // Get the function authorization.
         let function_authorization = execute_request.function_authorization;
@@ -61,7 +61,9 @@ pub fn execute(request_bytes: Bytes) -> Result<Vec<u8>> {
         let execution = trace.prove_execution::<CurrentAleo, _>(&locator, rng)?;
 
         // Execute the fee authorization.
-        let (_, mut trace) = process.borrow().execute::<CurrentAleo, _>(fee_authorization, rng)?;
+        let (_, mut trace) = process
+            .borrow()
+            .execute::<CurrentAleo, _>(fee_authorization, rng)?;
 
         // Prepare the trace.
         trace.prepare(query)?;

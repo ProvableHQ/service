@@ -15,7 +15,7 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 mod execute;
-use execute::*;
+pub use execute::*;
 
 pub mod query;
 pub use query::*;
@@ -33,6 +33,7 @@ use snarkvm::prelude::{
 };
 
 use anyhow::{anyhow, Result};
+use rand_chacha::rand_core::SeedableRng;
 
 pub type CurrentNetwork = Testnet3;
 pub type CurrentAleo = AleoV0;

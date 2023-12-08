@@ -17,16 +17,18 @@
 #[macro_use]
 extern crate criterion;
 
-use criterion::{BatchSize, Criterion};
 use snarkvm::circuit::AleoV0;
 use snarkvm::prelude::{
     Address, FromBytes, Identifier, Literal, PrivateKey, Process, ProgramID, Signature, Value, U64,
 };
-use std::str::FromStr;
 
 use authorize_service::{
     authorize, keygen, sign, verify, AuthorizeRequest, CurrentNetwork, SignRequest, VerifyRequest,
 };
+
+use criterion::{BatchSize, Criterion};
+use rand_chacha::rand_core::SeedableRng;
+use std::str::FromStr;
 
 fn bench_private_key_from_seed(c: &mut Criterion) {
     c.bench_function("private_key_from_seed", |b| {
@@ -73,7 +75,7 @@ fn bench_authorize(c: &mut Criterion) {
         )),
         Value::from(Literal::U64(U64::new(100))),
     ];
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
     c.bench_function("general_authorize", move |b| {
         b.iter_batched(
