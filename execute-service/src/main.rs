@@ -21,7 +21,7 @@ use warp::Filter;
 
 #[derive(StructOpt, Debug)]
 struct Opt {
-    #[structopt(short, long, default_value = "3031")]
+    #[structopt(short, long, default_value = "8081")]
     port: u16,
 }
 
