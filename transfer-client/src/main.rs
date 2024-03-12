@@ -16,7 +16,7 @@
 
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Field, FromBytes, Identifier, Network, PrivateKey, ProgramID, Testnet3, ToBytes, Uniform,
+    Field, FromBytes, Identifier, MainnetV0, Network, PrivateKey, ProgramID, ToBytes, Uniform,
     Value, U64,
 };
 
@@ -37,7 +37,7 @@ const STATE_ROOT_URL: &str = "http://localhost:3033/testnet3/stateRoot/latest";
 
 const DEVNET_PRIVATE_KEY: &str = "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH";
 
-type CurrentNetwork = Testnet3;
+type CurrentNetwork = MainnetV0;
 
 #[tokio::main]
 async fn main() -> Result<()> {

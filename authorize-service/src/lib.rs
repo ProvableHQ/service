@@ -34,8 +34,8 @@ pub use signature::*;
 
 use snarkvm::circuit::AleoV0;
 use snarkvm::prelude::{
-    Address, Authorization, Deserialize, Environment, Field, Network, PrivateKey, Process,
-    Serialize, Signature, Testnet3, ToBytes,
+    Address, Authorization, Deserialize, Environment, Field, MainnetV0, Network, PrivateKey,
+    Process, Serialize, Signature, ToBytes,
 };
 
 use anyhow::Result;
@@ -43,5 +43,5 @@ use rand_chacha::rand_core::SeedableRng;
 use std::cell::RefCell;
 use std::str::FromStr;
 
-pub type CurrentNetwork = Testnet3;
+pub type CurrentNetwork = MainnetV0;
 pub type CurrentAleo = AleoV0;

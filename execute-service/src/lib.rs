@@ -29,11 +29,11 @@ pub use routes::*;
 use snarkvm::circuit::AleoV0;
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Authorization, FromBytes, Locator, Network, Process, StatePath, Testnet3, ToBytes,
+    Authorization, FromBytes, Locator, MainnetV0, Network, Process, StatePath, ToBytes,
 };
 
 use anyhow::{anyhow, Result};
 use rand_chacha::rand_core::SeedableRng;
 
-pub type CurrentNetwork = Testnet3;
+pub type CurrentNetwork = MainnetV0;
 pub type CurrentAleo = AleoV0;
