@@ -14,31 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
-pub mod authorize;
-pub use authorize::*;
+use super::*;
 
-pub mod keygen;
-pub use keygen::*;
+pub enum ProcessVariant {
+    MainnetV0(Process<MainnetV0>),
+    TestnetV0(Process<TestnetV0>),
+}
 
-pub mod request;
-pub use request::*;
-
-pub mod response;
-pub use response::*;
-
-pub mod routes;
-pub use routes::*;
-
-pub mod signature;
-pub use signature::*;
-
-use snarkvm::circuit::{Aleo, AleoV0};
-use snarkvm::prelude::{
-    Address, Authorization, Deserialize, Environment, Field, MainnetV0, TestnetV0, Network, PrivateKey,
-    Process, Serialize, Signature, ToBytes,
-};
-
-use anyhow::Result;
-use rand_chacha::rand_core::SeedableRng;
-use std::cell::RefCell;
-use std::str::FromStr;
+impl ProcessVariant {
+    pub fn authorize

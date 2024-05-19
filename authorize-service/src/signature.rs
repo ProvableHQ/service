@@ -21,8 +21,8 @@ use super::*;
 /// @param {string} private_key Private key to sign the message with
 /// @param {Uint8Array} message Byte representation of the message to sign
 /// @returns {SignatureResponse} Signed message in little endian bytes
-pub fn sign(request: SignRequest) -> Result<SignResponse> {
-    let signature = Signature::<CurrentNetwork>::sign_bytes(
+pub fn sign<N: Network>(request: SignRequest<N>) -> Result<SignResponse> {
+    let signature = Signature::<N>::sign_bytes(
         &request.private_key,
         &request.message,
         &mut rand_chacha::ChaCha20Rng::from_entropy(),
@@ -37,7 +37,7 @@ pub fn sign(request: SignRequest) -> Result<SignResponse> {
 ///
 /// @param {VerifyRequest} verify_request Request containing the address, message, and signature
 /// @returns {VerifyResponse} True if the signature is valid, false otherwise
-pub fn verify(request: VerifyRequest) -> Result<VerifyResponse> {
+pub fn verify<N: Network>(request: VerifyRequest<N>) -> Result<VerifyResponse> {
     Ok(VerifyResponse {
         result: request
             .signature

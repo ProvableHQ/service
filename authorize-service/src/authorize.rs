@@ -16,44 +16,49 @@
 
 use super::*;
 
-// Initialize a thread-local `Process`.
+// Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    static PROCESS: RefCell<Process<CurrentNetwork>> = RefCell::new(Process::load().unwrap());
+    static PROCESS: RefCell<Option<ProcessVariant>> = RefCell::new(None);
 }
 
-pub fn authorize(request: AuthorizeRequest) -> Result<AuthorizeResponse> {
+pub fn authorize<A: Aleo<Network = N>, N: Network>(request: AuthorizeRequest<N>) -> Result<AuthorizeResponse<N>> {
     PROCESS.with(|process| {
-        // Initialize the RNG.
-        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+        if let Some(process) = *process.borrow() {
+            // Initialize the RNG.
+            let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
-        // Authorize the function.
-        let function_authorization = process.borrow().authorize::<CurrentAleo, _>(
-            &request.private_key,
-            request.program_id,
-            request.function_name,
-            request.inputs.iter(),
-            rng,
-        )?;
+            // Authorize the function.
+            let function_authorization = process.authorize::<A, _>(
+                &request.private_key,
+                request.program_id,
+                request.function_name,
+                request.inputs.iter(),
+                rng,
+            )?;
 
-        // Get the execution ID.
-        let execution_id = function_authorization.to_execution_id()?;
+            // Get the execution ID.
+            let execution_id = function_authorization.to_execution_id()?;
 
-        // Authorize the fee.
-        let fee_authorization = process.borrow().authorize_fee_public::<CurrentAleo, _>(
-            &request.private_key,
-            *request.base_fee_in_microcredits,
-            *request.priority_fee_in_microcredits,
-            execution_id,
-            rng,
-        )?;
+            // Authorize the fee.
+            let fee_authorization = process.authorize_fee_public::<A, _>(
+                &request.private_key,
+                *request.base_fee_in_microcredits,
+                *request.priority_fee_in_microcredits,
+                execution_id,
+                rng,
+            )?;
 
-        // Construct the response.
-        let response = AuthorizeResponse {
-            function_authorization,
-            fee_authorization,
-        };
+            // Construct the response.
+            let response = AuthorizeResponse {
+                function_authorization,
+                fee_authorization,
+            };
 
-        // Return the response.
-        Ok(response)
+            // Return the response.
+            Ok(response)
+        } else {
+            unreachable!("The process is always initialized before this function is invoked")
+        }
+
     })
 }
