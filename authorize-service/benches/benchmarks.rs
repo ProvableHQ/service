@@ -57,7 +57,7 @@ fn bench_authorize_transfer_public(c: &mut Criterion) {
     c.bench_function("authorize_transfer_public", |b| {
         b.iter_batched(
             || body.clone(),
-            |body| authorize_service::authorize(body).unwrap(),
+            |body| authorize_service::authorize::<CurrentNetwork>(body).unwrap(),
             BatchSize::SmallInput,
         )
     });

@@ -32,12 +32,12 @@ const KEYGEN_URL: &str = "http://localhost:8080/keygen";
 const AUTHORIZE_URL: &str = "http://localhost:8080/authorize";
 const EXECUTE_URL: &str = "http://localhost:8081/execute";
 
-const BROADCAST_URL: &str = "http://localhost:3033/testnet/transaction/broadcast";
-const STATE_ROOT_URL: &str = "http://localhost:3033/testnet/stateRoot/latest";
+const BROADCAST_URL: &str = "http://localhost:3033/mainnet/transaction/broadcast";
+const STATE_ROOT_URL: &str = "http://localhost:3033/mainnet/stateRoot/latest";
 
 const DEVNET_PRIVATE_KEY: &str = "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH";
 
-type CurrentNetwork = snarkvm::prelude::TestnetV0;
+type CurrentNetwork = snarkvm::prelude::MainnetV0;
 
 #[tokio::main]
 async fn main() -> Result<()> {
