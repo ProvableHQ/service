@@ -22,4 +22,55 @@ pub enum ProcessVariant {
 }
 
 impl ProcessVariant {
-    pub fn authorize
+    pub fn authorize(&self, body: &[u8]) -> Result<Value> {
+        match self {
+            ProcessVariant::MainnetV0(process) => {
+                Self::handle_authorize::<AleoV0, MainnetV0>(process, body)
+            }
+            ProcessVariant::TestnetV0(process) => {
+                Self::handle_authorize::<AleoTestnetV0, TestnetV0>(process, body)
+            }
+        }
+    }
+
+    fn handle_authorize<A: Aleo<Network = N>, N: Network>(
+        process: &Process<N>,
+        request: &[u8],
+    ) -> Result<Value> {
+        // Deserialize the request.
+        let request = serde_json::from_slice::<AuthorizeRequest<N>>(request)?;
+
+        // Initialize the RNG.
+        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+
+        // Authorize the function.
+        let function_authorization = process.authorize::<A, _>(
+            &request.private_key,
+            request.program_id,
+            request.function_name,
+            request.inputs.iter(),
+            rng,
+        )?;
+
+        // Get the execution ID.
+        let execution_id = function_authorization.to_execution_id()?;
+
+        // Authorize the fee.
+        let fee_authorization = process.authorize_fee_public::<A, _>(
+            &request.private_key,
+            *request.base_fee_in_microcredits,
+            *request.priority_fee_in_microcredits,
+            execution_id,
+            rng,
+        )?;
+
+        // Construct the response.
+        let response = AuthorizeResponse::<N> {
+            function_authorization,
+            fee_authorization,
+        };
+
+        // Return the response as JSON.
+        Ok(serde_json::to_value(response)?)
+    }
+}

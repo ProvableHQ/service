@@ -15,6 +15,7 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 use authorize_service::*;
+use snarkvm::prelude::{MainnetV0, Network, Process, TestnetV0};
 
 use structopt::StructOpt;
 use warp::Filter;
@@ -30,9 +31,13 @@ struct Opt {
 async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
-    let routes = keygen_route::<N>().or(authorize_route::<N>()).with(warp::trace(
-        |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
-    ));
+    let routes = keygen_route::<N>()
+        .or(authorize_route())
+        .or(sign_route::<N>())
+        .or(verify_route::<N>())
+        .with(warp::trace(
+            |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
+        ));
 
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
@@ -42,8 +47,22 @@ async fn main() {
     let opt = Opt::from_args();
 
     match opt.network.as_str() {
-        "mainnet" => run::<MainnetV0>(opt.port).await,
-        "testnet" => run::<TestnetV0>(opt.port).await,
+        "mainnet" => {
+            PROCESS.with(|process| {
+                *process.borrow_mut() = Some(ProcessVariant::MainnetV0(
+                    Process::load().expect("Failed to load mainnet process"),
+                ));
+            });
+            run::<MainnetV0>(opt.port).await
+        }
+        "testnet" => {
+            PROCESS.with(|process| {
+                *process.borrow_mut() = Some(ProcessVariant::TestnetV0(
+                    Process::load().expect("Failed to load testnet process"),
+                ));
+            });
+            run::<TestnetV0>(opt.port).await
+        }
         _ => panic!("Invalid network"),
     }
 }

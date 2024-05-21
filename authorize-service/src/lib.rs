@@ -20,6 +20,9 @@ pub use authorize::*;
 pub mod keygen;
 pub use keygen::*;
 
+pub mod process_variant;
+pub use process_variant::*;
+
 pub mod request;
 pub use request::*;
 
@@ -32,13 +35,14 @@ pub use routes::*;
 pub mod signature;
 pub use signature::*;
 
-use snarkvm::circuit::{Aleo, AleoV0};
+use snarkvm::circuit::{Aleo, AleoTestnetV0, AleoV0};
 use snarkvm::prelude::{
-    Address, Authorization, Deserialize, Environment, Field, MainnetV0, TestnetV0, Network, PrivateKey,
-    Process, Serialize, Signature, ToBytes,
+    Address, Authorization, Deserialize, Environment, Field, MainnetV0, Network, PrivateKey,
+    Process, Serialize, Signature, TestnetV0, ToBytes,
 };
 
 use anyhow::Result;
 use rand_chacha::rand_core::SeedableRng;
+use serde_json::Value;
 use std::cell::RefCell;
 use std::str::FromStr;

@@ -18,47 +18,15 @@ use super::*;
 
 // Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    static PROCESS: RefCell<Option<ProcessVariant>> = RefCell::new(None);
+    pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
-pub fn authorize<A: Aleo<Network = N>, N: Network>(request: AuthorizeRequest<N>) -> Result<AuthorizeResponse<N>> {
+pub fn authorize(body: &[u8]) -> Result<Value> {
     PROCESS.with(|process| {
-        if let Some(process) = *process.borrow() {
-            // Initialize the RNG.
-            let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
-
-            // Authorize the function.
-            let function_authorization = process.authorize::<A, _>(
-                &request.private_key,
-                request.program_id,
-                request.function_name,
-                request.inputs.iter(),
-                rng,
-            )?;
-
-            // Get the execution ID.
-            let execution_id = function_authorization.to_execution_id()?;
-
-            // Authorize the fee.
-            let fee_authorization = process.authorize_fee_public::<A, _>(
-                &request.private_key,
-                *request.base_fee_in_microcredits,
-                *request.priority_fee_in_microcredits,
-                execution_id,
-                rng,
-            )?;
-
-            // Construct the response.
-            let response = AuthorizeResponse {
-                function_authorization,
-                fee_authorization,
-            };
-
-            // Return the response.
-            Ok(response)
+        if let Some(process) = process.borrow().as_ref() {
+            process.authorize(body)
         } else {
             unreachable!("The process is always initialized before this function is invoked")
         }
-
     })
 }
