@@ -22,23 +22,23 @@ pub enum ProcessVariant {
 }
 
 impl ProcessVariant {
-    pub fn authorize(&self, body: &[u8]) -> Result<Value> {
+    pub fn authorize(&self, bytes: &[u8]) -> Result<Value> {
         match self {
             ProcessVariant::MainnetV0(process) => {
-                Self::handle_authorize::<AleoV0, MainnetV0>(process, body)
+                Self::handle_authorize::<AleoV0, MainnetV0>(process, bytes)
             }
             ProcessVariant::TestnetV0(process) => {
-                Self::handle_authorize::<AleoTestnetV0, TestnetV0>(process, body)
+                Self::handle_authorize::<AleoTestnetV0, TestnetV0>(process, bytes)
             }
         }
     }
 
     fn handle_authorize<A: Aleo<Network = N>, N: Network>(
         process: &Process<N>,
-        request: &[u8],
+        bytes: &[u8],
     ) -> Result<Value> {
         // Deserialize the request.
-        let request = serde_json::from_slice::<AuthorizeRequest<N>>(request)?;
+        let request = serde_json::from_slice::<AuthorizeRequest<N>>(bytes)?;
 
         // Initialize the RNG.
         let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();

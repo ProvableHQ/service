@@ -53,11 +53,11 @@ fn bench_authorize_transfer_public(c: &mut Criterion) {
         base_fee_in_microcredits: U64::new(300000),
         priority_fee_in_microcredits: U64::new(0),
     };
-    let body = serde_json::to_vec(&request).unwrap();
+    let body = warp::hyper::body::Bytes::from(serde_json::to_vec(&request).unwrap());
     c.bench_function("authorize_transfer_public", |b| {
         b.iter_batched(
             || body.clone(),
-            |body| authorize_service::authorize(&body).unwrap(),
+            |body| authorize_service::authorize(body).unwrap(),
             BatchSize::SmallInput,
         )
     });

@@ -31,7 +31,7 @@ version = "1.0.190"
 
 [dependencies.snarkvm]
 git = "https://github.com/AleoHQ/snarkVM.git"
-rev = "faffd15"
+rev = "140ff26"
 
 [dependencies.structopt]
 version = "0.3.26"

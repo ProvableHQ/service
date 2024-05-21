@@ -23,7 +23,7 @@ pub fn execute_route() -> impl Filter<Extract = impl Reply, Error = Rejection> +
     warp::post()
         .and(warp::path("execute"))
         .and(warp::path::end())
-        .and(warp::body::content_length_limit(32 * 1024)) // 32 kilobytes TODO (@d0cd): Check
+        .and(warp::body::content_length_limit(32 * 1024)) // 32 KiB
         .and(warp::body::bytes())
         .and_then(|request_bytes: Bytes| async move {
             let response_bytes = match tokio_rayon::spawn_fifo(|| execute(request_bytes)).await {

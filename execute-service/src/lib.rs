@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
-mod execute;
+pub mod execute;
 pub use execute::*;
+
+pub mod process_variant;
+pub use process_variant::*;
 
 pub mod query;
 pub use query::*;
@@ -26,14 +29,11 @@ pub use request::*;
 pub mod routes;
 pub use routes::*;
 
-use snarkvm::circuit::AleoV0;
+use snarkvm::circuit::{Aleo, AleoTestnetV0, AleoV0};
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Authorization, FromBytes, Locator, MainnetV0, Network, Process, StatePath, ToBytes,
+    Authorization, FromBytes, Locator, MainnetV0, Network, Process, StatePath, TestnetV0, ToBytes,
 };
 
 use anyhow::{anyhow, Result};
 use rand_chacha::rand_core::SeedableRng;
-
-pub type CurrentNetwork = MainnetV0;
-pub type CurrentAleo = AleoV0;

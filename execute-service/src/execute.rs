@@ -19,62 +19,17 @@ use super::*;
 use std::cell::RefCell;
 use warp::hyper::body::Bytes;
 
-// Initialize a thread-local `Process`.
+// Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    static PROCESS: RefCell<Process<CurrentNetwork>> = RefCell::new(Process::load().unwrap());
+    pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
-pub fn execute(request_bytes: Bytes) -> Result<Vec<u8>> {
+pub fn execute(bytes: Bytes) -> Result<Vec<u8>> {
     PROCESS.with(|process| {
-        // Deserialize the `ExecuteRequest`.
-        let execute_request = ExecuteRequest::from_bytes_le(&request_bytes)?;
-        // Initialize an RNG.
-        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
-
-        // Get the function authorization.
-        let function_authorization = execute_request.function_authorization;
-        // Get the fee authorization.
-        let fee_authorization = execute_request.fee_authorization;
-        // Get the state root.
-        let state_root = execute_request.state_root;
-        // Get the state path.
-        let state_path = execute_request.state_path;
-
-        // Construct the query.
-        let query = StaticQuery::new(state_root, state_path);
-
-        // Construct the locator of the main function.
-        let locator = {
-            let request = function_authorization.peek_next()?;
-            Locator::new(*request.program_id(), *request.function_name()).to_string()
-        };
-
-        // Execute the function authorization.
-        let (_, mut trace) = process
-            .borrow()
-            .execute::<CurrentAleo, _>(function_authorization, rng)?;
-
-        // Prepare the trace.
-        trace.prepare(query.clone())?;
-
-        // Compute the proof and construct the execution.
-        let execution = trace.prove_execution::<CurrentAleo, _>(&locator, rng)?;
-
-        // Execute the fee authorization.
-        let (_, mut trace) = process
-            .borrow()
-            .execute::<CurrentAleo, _>(fee_authorization, rng)?;
-
-        // Prepare the trace.
-        trace.prepare(query)?;
-
-        // Compute the proof and construct the fee.
-        let fee = trace.prove_fee::<CurrentAleo, _>(rng)?;
-
-        // Construct the transaction.
-        let transaction = Transaction::from_execution(execution, Some(fee))?;
-
-        // Serialize the transaction.
-        transaction.to_bytes_le()
+        if let Some(process) = process.borrow().as_ref() {
+            process.execute(&bytes)
+        } else {
+            unreachable!("The process is always initialized before this function is invoked")
+        }
     })
 }

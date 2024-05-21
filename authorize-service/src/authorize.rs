@@ -21,10 +21,10 @@ thread_local! {
     pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
-pub fn authorize(body: &[u8]) -> Result<Value> {
+pub fn authorize(bytes: Bytes) -> Result<Value> {
     PROCESS.with(|process| {
         if let Some(process) = process.borrow().as_ref() {
-            process.authorize(body)
+            process.authorize(&bytes)
         } else {
             unreachable!("The process is always initialized before this function is invoked")
         }

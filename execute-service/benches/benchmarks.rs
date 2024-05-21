@@ -17,15 +17,17 @@
 #[macro_use]
 extern crate criterion;
 
-use snarkvm::circuit::AleoV0;
-use snarkvm::prelude::{Address, Literal, PrivateKey, Process, ToBytes, Value, U64};
+use execute_service::{execute, ExecuteRequest};
 
-use execute_service::{execute, CurrentNetwork, ExecuteRequest};
+use snarkvm::circuit::AleoV0;
+use snarkvm::prelude::{Address, Literal, MainnetV0, PrivateKey, Process, ToBytes, Value, U64};
 
 use criterion::{BatchSize, Criterion};
 use rand_chacha::rand_core::SeedableRng;
 use std::str::FromStr;
 use warp::hyper::body::Bytes;
+
+type CurrentNetwork = MainnetV0;
 
 fn bench_execute_transfer_public(c: &mut Criterion) {
     let process = Process::<CurrentNetwork>::load().unwrap();

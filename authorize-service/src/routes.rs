@@ -40,8 +40,8 @@ pub fn authorize_route() -> impl Filter<Extract = impl Reply, Error = Rejection>
         .and(warp::path::end())
         .and(warp::body::content_length_limit(32 * 1024)) // 32 KiB
         .and(warp::body::bytes())
-        .and_then(|body: warp::hyper::body::Bytes| async move {
-            let response = match tokio_rayon::spawn_fifo(move || authorize(&body)).await {
+        .and_then(|bytes: Bytes| async move {
+            let response = match tokio_rayon::spawn_fifo(|| authorize(bytes)).await {
                 Ok(response) => response,
                 Err(_) => return Err(warp::reject()),
             };

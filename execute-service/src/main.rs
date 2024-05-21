@@ -16,11 +16,15 @@
 
 use execute_service::*;
 
+use snarkvm::prelude::Process;
+
 use structopt::StructOpt;
 use warp::Filter;
 
 #[derive(StructOpt, Debug)]
 struct Opt {
+    #[structopt(short, long)]
+    network: String,
     #[structopt(short, long, default_value = "8081")]
     port: u16,
 }
@@ -38,5 +42,23 @@ async fn run(port: u16) {
 #[tokio::main]
 async fn main() {
     let opt = Opt::from_args();
+
+    match opt.network.as_str() {
+        "mainnet" => {
+            PROCESS.with(|process| {
+                *process.borrow_mut() = Some(ProcessVariant::MainnetV0(
+                    Process::load().expect("Failed to load mainnet process"),
+                ));
+            });
+        }
+        "testnet" => {
+            PROCESS.with(|process| {
+                *process.borrow_mut() = Some(ProcessVariant::TestnetV0(
+                    Process::load().expect("Failed to load testnet process"),
+                ));
+            });
+        }
+        _ => panic!("Invalid network"),
+    }
     run(opt.port).await;
 }
