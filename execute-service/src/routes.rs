@@ -19,14 +19,14 @@ use super::*;
 use warp::{http::Response, hyper::body::Bytes, Filter, Rejection, Reply};
 
 // POST /execute
-pub fn execute_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+pub fn execute_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::post()
         .and(warp::path("execute"))
         .and(warp::path::end())
         .and(warp::body::content_length_limit(32 * 1024)) // 32 KiB
         .and(warp::body::bytes())
         .and_then(|request_bytes: Bytes| async move {
-            let response_bytes = match tokio_rayon::spawn_fifo(|| execute(request_bytes)).await {
+            let response_bytes = match tokio_rayon::spawn_fifo(|| execute::<N>(request_bytes)).await {
                 Ok(response_bytes) => response_bytes,
                 Err(_) => return Err(warp::reject()),
             };

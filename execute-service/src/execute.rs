@@ -24,12 +24,23 @@ thread_local! {
     pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
-pub fn execute(bytes: Bytes) -> Result<Vec<u8>> {
+pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
     PROCESS.with(|process| {
-        if let Some(process) = process.borrow().as_ref() {
-            process.execute(&bytes)
-        } else {
-            unreachable!("The process is always initialized before this function is invoked")
-        }
+        // Initialize the process if it is not already initialized.
+        if process.borrow().is_none() {
+            *process.borrow_mut() = match N::ID {
+                MainnetV0::ID => {
+                    println!("Loading mainnet process...");
+                    Some(ProcessVariant::MainnetV0(Process::load().expect("Failed to load mainnet process")))
+                },
+                TestnetV0::ID => {
+                    println!("Loading testnet process...");
+                    Some(ProcessVariant::TestnetV0(Process::load().expect("Failed to load testnet process")))
+                },
+                _ => panic!("Invalid network"),
+            };
+        };
+        // Compute the `Execution`.
+        process.borrow().as_ref().unwrap().execute(&bytes)
     })
 }

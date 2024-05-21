@@ -34,14 +34,14 @@ pub fn keygen_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = R
 }
 
 // POST /authorize
-pub fn authorize_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+pub fn authorize_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::post()
         .and(warp::path("authorize"))
         .and(warp::path::end())
         .and(warp::body::content_length_limit(32 * 1024)) // 32 KiB
         .and(warp::body::bytes())
         .and_then(|bytes: Bytes| async move {
-            let response = match tokio_rayon::spawn_fifo(|| authorize(bytes)).await {
+            let response = match tokio_rayon::spawn_fifo(|| authorize::<N>(bytes)).await {
                 Ok(response) => response,
                 Err(_) => return Err(warp::reject()),
             };

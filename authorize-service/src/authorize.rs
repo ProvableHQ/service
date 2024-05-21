@@ -18,15 +18,26 @@ use super::*;
 
 // Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
+    pub static PROCESS: RefCell<Option<ProcessVariant>> = RefCell::new(None);
 }
 
-pub fn authorize(bytes: Bytes) -> Result<Value> {
+pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
     PROCESS.with(|process| {
-        if let Some(process) = process.borrow().as_ref() {
-            process.authorize(&bytes)
-        } else {
-            unreachable!("The process is always initialized before this function is invoked")
-        }
+        // Initialize the process if it is not already initialized.
+        if process.borrow().is_none() {
+            *process.borrow_mut() = match N::ID {
+                MainnetV0::ID => {
+                    println!("Loading mainnet process...");
+                    Some(ProcessVariant::MainnetV0(Process::load().expect("Failed to load mainnet process")))
+                },
+                TestnetV0::ID => {
+                    println!("Loading testnet process...");
+                    Some(ProcessVariant::TestnetV0(Process::load().expect("Failed to load testnet process")))
+                },
+                _ => panic!("Invalid network"),
+            };
+        };
+        // Compute the `Authorization`.
+        process.borrow().as_ref().unwrap().authorize(&bytes)
     })
 }

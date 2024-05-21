@@ -16,8 +16,7 @@
 
 use execute_service::*;
 
-use snarkvm::prelude::Process;
-
+use snarkvm::prelude::{Network, MainnetV0, TestnetV0};
 use structopt::StructOpt;
 use warp::Filter;
 
@@ -29,10 +28,10 @@ struct Opt {
     port: u16,
 }
 
-async fn run(port: u16) {
+async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
-    let routes = execute_route().with(warp::trace(
+    let routes = execute_route::<N>().with(warp::trace(
         |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
     ));
 
@@ -44,21 +43,8 @@ async fn main() {
     let opt = Opt::from_args();
 
     match opt.network.as_str() {
-        "mainnet" => {
-            PROCESS.with(|process| {
-                *process.borrow_mut() = Some(ProcessVariant::MainnetV0(
-                    Process::load().expect("Failed to load mainnet process"),
-                ));
-            });
-        }
-        "testnet" => {
-            PROCESS.with(|process| {
-                *process.borrow_mut() = Some(ProcessVariant::TestnetV0(
-                    Process::load().expect("Failed to load testnet process"),
-                ));
-            });
-        }
+        "mainnet" => run::<MainnetV0>(opt.port).await,
+        "testnet" => run::<TestnetV0>(opt.port).await,
         _ => panic!("Invalid network"),
     }
-    run(opt.port).await;
 }

@@ -15,7 +15,7 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 use authorize_service::*;
-use snarkvm::prelude::{MainnetV0, Network, Process, TestnetV0};
+use snarkvm::prelude::{MainnetV0, Network, TestnetV0};
 
 use structopt::StructOpt;
 use warp::Filter;
@@ -32,7 +32,7 @@ async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
     let routes = keygen_route::<N>()
-        .or(authorize_route())
+        .or(authorize_route::<N>())
         .or(sign_route::<N>())
         .or(verify_route::<N>())
         .with(warp::trace(
@@ -47,22 +47,8 @@ async fn main() {
     let opt = Opt::from_args();
 
     match opt.network.as_str() {
-        "mainnet" => {
-            PROCESS.with(|process| {
-                *process.borrow_mut() = Some(ProcessVariant::MainnetV0(
-                    Process::load().expect("Failed to load mainnet process"),
-                ));
-            });
-            run::<MainnetV0>(opt.port).await
-        }
-        "testnet" => {
-            PROCESS.with(|process| {
-                *process.borrow_mut() = Some(ProcessVariant::TestnetV0(
-                    Process::load().expect("Failed to load testnet process"),
-                ));
-            });
-            run::<TestnetV0>(opt.port).await
-        }
+        "mainnet" => run::<MainnetV0>(opt.port).await,
+        "testnet" => run::<TestnetV0>(opt.port).await,
         _ => panic!("Invalid network"),
     }
 }

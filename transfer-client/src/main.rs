@@ -32,12 +32,12 @@ const KEYGEN_URL: &str = "http://localhost:8080/keygen";
 const AUTHORIZE_URL: &str = "http://localhost:8080/authorize";
 const EXECUTE_URL: &str = "http://localhost:8081/execute";
 
-const BROADCAST_URL: &str = "http://localhost:3033/mainnet/transaction/broadcast";
-const STATE_ROOT_URL: &str = "http://localhost:3033/mainnet/stateRoot/latest";
+const BROADCAST_URL: &str = "http://localhost:3033/testnet/transaction/broadcast";
+const STATE_ROOT_URL: &str = "http://localhost:3033/testnet/stateRoot/latest";
 
 const DEVNET_PRIVATE_KEY: &str = "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH";
 
-type CurrentNetwork = MainnetV0;
+type CurrentNetwork = snarkvm::prelude::TestnetV0;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
     let priority_fee_in_microcredits = U64::new(10);
 
     // Construct an `AuthorizeRequest`.
-    let authorize_request = AuthorizeRequest {
+    let authorize_request = AuthorizeRequest::<CurrentNetwork> {
         private_key,
         program_id: ProgramID::from_str("credits.aleo")?,
         function_name: Identifier::from_str("transfer_public")?,
@@ -99,7 +99,7 @@ async fn main() -> Result<()> {
 
     // If the request was successful, deserialize the response as an `AuthorizeResponse`.
     let authorize_response = match response.status().is_success() {
-        true => response.json::<AuthorizeResponse>().await?,
+        true => response.json::<AuthorizeResponse::<CurrentNetwork>>().await?,
         false => bail!(
             "Authorization request failed with status: {}",
             response.status()
