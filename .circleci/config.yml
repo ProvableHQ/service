@@ -51,7 +51,7 @@ commands:
 jobs:
   authorize-service:
     docker:
-      - image: cimg/rust:1.73
+      - image: cimg/rust:1.74
     resource_class: xlarge
     steps:
       - checkout
