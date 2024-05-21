@@ -99,7 +99,7 @@ async fn main() -> Result<()> {
 
     // If the request was successful, deserialize the response as an `AuthorizeResponse`.
     let authorize_response = match response.status().is_success() {
-        true => response.json::<AuthorizeResponse::<CurrentNetwork>>().await?,
+        true => response.json::<AuthorizeResponse<CurrentNetwork>>().await?,
         false => bail!(
             "Authorization request failed with status: {}",
             response.status()

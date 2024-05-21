@@ -31,12 +31,16 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
             *process.borrow_mut() = match N::ID {
                 MainnetV0::ID => {
                     println!("Loading mainnet process...");
-                    Some(ProcessVariant::MainnetV0(Process::load().expect("Failed to load mainnet process")))
-                },
+                    Some(ProcessVariant::MainnetV0(
+                        Process::load().expect("Failed to load mainnet process"),
+                    ))
+                }
                 TestnetV0::ID => {
                     println!("Loading testnet process...");
-                    Some(ProcessVariant::TestnetV0(Process::load().expect("Failed to load testnet process")))
-                },
+                    Some(ProcessVariant::TestnetV0(
+                        Process::load().expect("Failed to load testnet process"),
+                    ))
+                }
                 _ => panic!("Invalid network"),
             };
         };
