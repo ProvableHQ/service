@@ -28,10 +28,12 @@ version = "0.3.1"
 [dependencies.serde]
 version = "1.0.190"
 
+[dependencies.serde_json]
+version = "1.0.117"
+
 [dependencies.snarkvm]
 git = "https://github.com/AleoHQ/snarkVM.git"
-rev = "afb38c5"
-#version = "0.16.12"
+rev = "140ff26"
 
 [dependencies.structopt]
 version = "0.3.26"

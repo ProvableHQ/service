@@ -23,9 +23,11 @@ pub struct KeygenResponse {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AuthorizeResponse {
-    pub function_authorization: Authorization<CurrentNetwork>,
-    pub fee_authorization: Authorization<CurrentNetwork>,
+pub struct AuthorizeResponse<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub function_authorization: Authorization<N>,
+    #[serde(bound(deserialize = ""))]
+    pub fee_authorization: Authorization<N>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

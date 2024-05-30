@@ -15,7 +15,10 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 use snarkvm::ledger::block::Transaction;
-use snarkvm::prelude::{Field, FromBytes, Network, PrivateKey, Testnet3, ToBytes, Uniform, U64, ProgramID, Identifier, Value};
+use snarkvm::prelude::{
+    Field, FromBytes, Identifier, MainnetV0, Network, PrivateKey, ProgramID, ToBytes, Uniform,
+    Value, U64,
+};
 
 use authorize_service::*;
 use execute_service::*;
@@ -29,12 +32,12 @@ const KEYGEN_URL: &str = "http://localhost:8080/keygen";
 const AUTHORIZE_URL: &str = "http://localhost:8080/authorize";
 const EXECUTE_URL: &str = "http://localhost:8081/execute";
 
-const BROADCAST_URL: &str = "http://localhost:3033/testnet3/transaction/broadcast";
-const STATE_ROOT_URL: &str = "http://localhost:3033/testnet3/stateRoot/latest";
+const BROADCAST_URL: &str = "http://localhost:3033/mainnet/transaction/broadcast";
+const STATE_ROOT_URL: &str = "http://localhost:3033/mainnet/stateRoot/latest";
 
 const DEVNET_PRIVATE_KEY: &str = "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH";
 
-type CurrentNetwork = Testnet3;
+type CurrentNetwork = snarkvm::prelude::MainnetV0;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -74,18 +77,15 @@ async fn main() -> Result<()> {
     let amount_in_microcredits = Value::from_str("100u64")?;
     // Construct the base fee.
     let base_fee_in_microcredits = U64::new(300_000); // TODO: Use a more precise fee.
-    // Construct the priority fee.
+                                                      // Construct the priority fee.
     let priority_fee_in_microcredits = U64::new(10);
 
     // Construct an `AuthorizeRequest`.
-    let authorize_request = AuthorizeRequest {
+    let authorize_request = AuthorizeRequest::<CurrentNetwork> {
         private_key,
         program_id: ProgramID::from_str("credits.aleo")?,
         function_name: Identifier::from_str("transfer_public")?,
-        inputs: vec![
-            recipient,
-            amount_in_microcredits,
-        ],
+        inputs: vec![recipient, amount_in_microcredits],
         base_fee_in_microcredits,
         priority_fee_in_microcredits,
     };
@@ -99,9 +99,7 @@ async fn main() -> Result<()> {
 
     // If the request was successful, deserialize the response as an `AuthorizeResponse`.
     let authorize_response = match response.status().is_success() {
-        true => {
-            response.json::<AuthorizeResponse>().await?
-        }
+        true => response.json::<AuthorizeResponse<CurrentNetwork>>().await?,
         false => bail!(
             "Authorization request failed with status: {}",
             response.status()

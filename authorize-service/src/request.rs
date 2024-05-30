@@ -19,24 +19,34 @@ use super::*;
 use snarkvm::prelude::{Identifier, ProgramID, Value, U64};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AuthorizeRequest {
-    pub private_key: PrivateKey<CurrentNetwork>,
-    pub program_id: ProgramID<CurrentNetwork>,
-    pub function_name: Identifier<CurrentNetwork>,
-    pub inputs: Vec<Value<CurrentNetwork>>,
-    pub base_fee_in_microcredits: U64<CurrentNetwork>,
-    pub priority_fee_in_microcredits: U64<CurrentNetwork>,
+pub struct AuthorizeRequest<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub private_key: PrivateKey<N>,
+    #[serde(bound(deserialize = ""))]
+    pub program_id: ProgramID<N>,
+    #[serde(bound(deserialize = ""))]
+    pub function_name: Identifier<N>,
+    #[serde(bound(deserialize = ""))]
+    pub inputs: Vec<Value<N>>,
+    #[serde(bound(deserialize = ""))]
+    pub base_fee_in_microcredits: U64<N>,
+    #[serde(bound(deserialize = ""))]
+    pub priority_fee_in_microcredits: U64<N>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SignRequest {
-    pub private_key: PrivateKey<CurrentNetwork>,
+pub struct SignRequest<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub private_key: PrivateKey<N>,
+    #[serde(bound(deserialize = ""))]
     pub message: Vec<u8>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct VerifyRequest {
-    pub address: Address<CurrentNetwork>,
+pub struct VerifyRequest<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub address: Address<N>,
     pub message: Vec<u8>,
-    pub signature: Signature<CurrentNetwork>,
+    #[serde(bound(deserialize = ""))]
+    pub signature: Signature<N>,
 }

@@ -16,19 +16,22 @@
 
 use execute_service::*;
 
+use snarkvm::prelude::{MainnetV0, Network, TestnetV0};
 use structopt::StructOpt;
 use warp::Filter;
 
 #[derive(StructOpt, Debug)]
 struct Opt {
-    #[structopt(short, long, default_value = "3031")]
+    #[structopt(short, long)]
+    network: String,
+    #[structopt(short, long, default_value = "8081")]
     port: u16,
 }
 
-async fn run(port: u16) {
+async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
-    let routes = execute_route().with(warp::trace(
+    let routes = execute_route::<N>().with(warp::trace(
         |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
     ));
 
@@ -38,5 +41,10 @@ async fn run(port: u16) {
 #[tokio::main]
 async fn main() {
     let opt = Opt::from_args();
-    run(opt.port).await;
+
+    match opt.network.as_str() {
+        "mainnet" => run::<MainnetV0>(opt.port).await,
+        "testnet" => run::<TestnetV0>(opt.port).await,
+        _ => panic!("Invalid network"),
+    }
 }

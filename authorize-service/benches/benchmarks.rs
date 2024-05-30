@@ -19,16 +19,17 @@ extern crate criterion;
 
 use snarkvm::circuit::AleoV0;
 use snarkvm::prelude::{
-    Address, FromBytes, Identifier, Literal, PrivateKey, Process, ProgramID, Signature, Value, U64,
+    Address, FromBytes, Identifier, Literal, MainnetV0, PrivateKey, Process, ProgramID, Signature,
+    Value, U64,
 };
 
-use authorize_service::{
-    authorize, keygen, sign, verify, AuthorizeRequest, CurrentNetwork, SignRequest, VerifyRequest,
-};
+use authorize_service::{keygen, sign, verify, AuthorizeRequest, SignRequest, VerifyRequest};
 
 use criterion::{BatchSize, Criterion};
 use rand_chacha::rand_core::SeedableRng;
 use std::str::FromStr;
+
+type CurrentNetwork = MainnetV0;
 
 fn bench_private_key_from_seed(c: &mut Criterion) {
     c.bench_function("private_key_from_seed", |b| {
@@ -37,7 +38,7 @@ fn bench_private_key_from_seed(c: &mut Criterion) {
 }
 
 fn bench_authorize_transfer_public(c: &mut Criterion) {
-    let request = AuthorizeRequest {
+    let request = AuthorizeRequest::<CurrentNetwork> {
         private_key: PrivateKey::from_str(
             "APrivateKey1zkpCE9rCw9SixY82xaDrW2Hwxc2f3VjeuR2oZHR81zcuUDV",
         )
@@ -52,10 +53,11 @@ fn bench_authorize_transfer_public(c: &mut Criterion) {
         base_fee_in_microcredits: U64::new(300000),
         priority_fee_in_microcredits: U64::new(0),
     };
+    let body = warp::hyper::body::Bytes::from(serde_json::to_vec(&request).unwrap());
     c.bench_function("authorize_transfer_public", |b| {
         b.iter_batched(
-            || request.clone(),
-            |request| authorize(request).unwrap(),
+            || body.clone(),
+            |body| authorize_service::authorize::<CurrentNetwork>(body).unwrap(),
             BatchSize::SmallInput,
         )
     });
@@ -97,7 +99,7 @@ fn bench_authorize(c: &mut Criterion) {
 }
 
 fn bench_sign(c: &mut Criterion) {
-    let request = SignRequest {
+    let request = SignRequest::<CurrentNetwork> {
         private_key: PrivateKey::from_str(
             "APrivateKey1zkpCE9rCw9SixY82xaDrW2Hwxc2f3VjeuR2oZHR81zcuUDV",
         )
@@ -116,7 +118,7 @@ fn bench_sign(c: &mut Criterion) {
 
 fn bench_verify(c: &mut Criterion) {
     // Sign a message.
-    let sign_request = SignRequest {
+    let sign_request = SignRequest::<CurrentNetwork> {
         private_key: PrivateKey::from_str(
             "APrivateKey1zkpCE9rCw9SixY82xaDrW2Hwxc2f3VjeuR2oZHR81zcuUDV",
         )
@@ -131,7 +133,8 @@ fn bench_verify(c: &mut Criterion) {
             "aleo1zcsyu7wfrdp4n6gq752p3np45sat9d6zun2uhjer2h4skccsgsgq7ndrnj",
         )
         .unwrap(),
-        signature: Signature::from_bytes_le(&sign_response.signed_message).unwrap(),
+        signature: Signature::<CurrentNetwork>::from_bytes_le(&sign_response.signed_message)
+            .unwrap(),
         message: "Hello, world!".as_bytes().to_vec(),
     };
 

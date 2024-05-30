@@ -16,44 +16,32 @@
 
 use super::*;
 
-// Initialize a thread-local `Process`.
+// Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    static PROCESS: RefCell<Process<CurrentNetwork>> = RefCell::new(Process::load().unwrap());
+    pub static PROCESS: RefCell<Option<ProcessVariant>> = RefCell::new(None);
 }
 
-pub fn authorize(request: AuthorizeRequest) -> Result<AuthorizeResponse> {
+pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
     PROCESS.with(|process| {
-        // Initialize the RNG.
-        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
-
-        // Authorize the function.
-        let function_authorization = process.borrow().authorize::<CurrentAleo, _>(
-            &request.private_key,
-            request.program_id,
-            request.function_name,
-            request.inputs.iter(),
-            rng,
-        )?;
-
-        // Get the execution ID.
-        let execution_id = function_authorization.to_execution_id()?;
-
-        // Authorize the fee.
-        let fee_authorization = process.borrow().authorize_fee_public::<CurrentAleo, _>(
-            &request.private_key,
-            *request.base_fee_in_microcredits,
-            *request.priority_fee_in_microcredits,
-            execution_id,
-            rng,
-        )?;
-
-        // Construct the response.
-        let response = AuthorizeResponse {
-            function_authorization,
-            fee_authorization,
+        // Initialize the process if it is not already initialized.
+        if process.borrow().is_none() {
+            *process.borrow_mut() = match N::ID {
+                MainnetV0::ID => {
+                    println!("Loading mainnet process...");
+                    Some(ProcessVariant::MainnetV0(
+                        Process::load().expect("Failed to load mainnet process"),
+                    ))
+                }
+                TestnetV0::ID => {
+                    println!("Loading testnet process...");
+                    Some(ProcessVariant::TestnetV0(
+                        Process::load().expect("Failed to load testnet process"),
+                    ))
+                }
+                _ => panic!("Invalid network"),
+            };
         };
-
-        // Return the response.
-        Ok(response)
+        // Compute the `Authorization`.
+        process.borrow().as_ref().unwrap().authorize(&bytes)
     })
 }
