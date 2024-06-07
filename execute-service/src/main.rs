@@ -16,7 +16,7 @@
 
 use execute_service::*;
 
-use snarkvm::prelude::{MainnetV0, Network, TestnetV0};
+use snarkvm::prelude::{CanaryV0, MainnetV0, Network, TestnetV0};
 use structopt::StructOpt;
 use warp::Filter;
 
@@ -45,6 +45,7 @@ async fn main() {
     match opt.network.as_str() {
         "mainnet" => run::<MainnetV0>(opt.port).await,
         "testnet" => run::<TestnetV0>(opt.port).await,
+        "canary" => run::<CanaryV0>(opt.port).await,
         _ => panic!("Invalid network"),
     }
 }

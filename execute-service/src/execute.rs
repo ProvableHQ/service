@@ -41,6 +41,12 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
                         Process::load().expect("Failed to load testnet process"),
                     ))
                 }
+                CanaryV0::ID => {
+                    println!("Loading canary process...");
+                    Some(ProcessVariant::CanaryV0(
+                        Process::load().expect("Failed to load canary process"),
+                    ))
+                }
                 _ => panic!("Invalid network"),
             };
         };

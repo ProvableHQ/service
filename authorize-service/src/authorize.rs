@@ -18,7 +18,7 @@ use super::*;
 
 // Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    pub static PROCESS: RefCell<Option<ProcessVariant>> = RefCell::new(None);
+    pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
 pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
@@ -36,6 +36,12 @@ pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
                     println!("Loading testnet process...");
                     Some(ProcessVariant::TestnetV0(
                         Process::load().expect("Failed to load testnet process"),
+                    ))
+                }
+                CanaryV0::ID => {
+                    println!("Loading canary process...");
+                    Some(ProcessVariant::CanaryV0(
+                        Process::load().expect("Failed to load canary process"),
                     ))
                 }
                 _ => panic!("Invalid network"),
