@@ -30,15 +30,12 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
         if process.borrow().is_none() {
             *process.borrow_mut() = match N::ID {
                 MainnetV0::ID => {
-                    println!("Loading mainnet process...");
                     Some(ProcessVariant::MainnetV0(load_process::<MainnetV0>()?))
                 }
                 TestnetV0::ID => {
-                    println!("Loading testnet process...");
                     Some(ProcessVariant::TestnetV0(load_process::<TestnetV0>()?))
                 }
                 CanaryV0::ID => {
-                    println!("Loading canary process...");
                     Some(ProcessVariant::CanaryV0(load_process::<CanaryV0>()?))
                 }
                 _ => panic!("Invalid network"),

@@ -16,7 +16,7 @@
 
 use execute_service::*;
 
-use snarkvm::prelude::{CanaryV0, MainnetV0, Network, Process, TestnetV0};
+use snarkvm::prelude::{CanaryV0, MainnetV0, Network, TestnetV0};
 use structopt::StructOpt;
 use warp::Filter;
 
