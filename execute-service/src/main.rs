@@ -16,7 +16,7 @@
 
 use execute_service::*;
 
-use snarkvm::prelude::{CanaryV0, MainnetV0, Network, TestnetV0};
+use snarkvm::prelude::{CanaryV0, MainnetV0, Network, Process, TestnetV0};
 use structopt::StructOpt;
 use warp::Filter;
 
@@ -43,9 +43,21 @@ async fn main() {
     let opt = Opt::from_args();
 
     match opt.network.as_str() {
-        "mainnet" => run::<MainnetV0>(opt.port).await,
-        "testnet" => run::<TestnetV0>(opt.port).await,
-        "canary" => run::<CanaryV0>(opt.port).await,
+        "mainnet" => {
+            // Load the proving keys before running the service.
+            let _ = load_process::<MainnetV0>().expect("Failed to load a mainnet process");
+            run::<MainnetV0>(opt.port).await
+        }
+        "testnet" => {
+            // Load the proving keys before running the service.
+            let _ = load_process::<TestnetV0>().expect("Failed to load a testnet process");
+            run::<TestnetV0>(opt.port).await
+        }
+        "canary" => {
+            // Load the proving keys before running the service.
+            let _ = load_process::<TestnetV0>().expect("Failed to load a canary process");
+            run::<CanaryV0>(opt.port).await
+        }
         _ => panic!("Invalid network"),
     }
 }

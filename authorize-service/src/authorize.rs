@@ -28,21 +28,15 @@ pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
             *process.borrow_mut() = match N::ID {
                 MainnetV0::ID => {
                     println!("Loading mainnet process...");
-                    Some(ProcessVariant::MainnetV0(
-                        Process::load().expect("Failed to load mainnet process"),
-                    ))
+                    Some(ProcessVariant::MainnetV0(Process::load()?))
                 }
                 TestnetV0::ID => {
                     println!("Loading testnet process...");
-                    Some(ProcessVariant::TestnetV0(
-                        Process::load().expect("Failed to load testnet process"),
-                    ))
+                    Some(ProcessVariant::TestnetV0(Process::load()?))
                 }
                 CanaryV0::ID => {
                     println!("Loading canary process...");
-                    Some(ProcessVariant::CanaryV0(
-                        Process::load().expect("Failed to load canary process"),
-                    ))
+                    Some(ProcessVariant::CanaryV0(Process::load()?))
                 }
                 _ => panic!("Invalid network"),
             };
