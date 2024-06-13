@@ -17,7 +17,7 @@ version = "0.3.1"
 
 [dependencies.snarkvm]
 git = "https://github.com/AleoNet/snarkVM.git"
-rev = "a3c9403"
+rev = "454d555"
 
 [dependencies.tokio]
 version = "1.33.0"

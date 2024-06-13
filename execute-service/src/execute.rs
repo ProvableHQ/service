@@ -29,15 +29,9 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
         // Initialize the process if it is not already initialized.
         if process.borrow().is_none() {
             *process.borrow_mut() = match N::ID {
-                MainnetV0::ID => {
-                    Some(ProcessVariant::MainnetV0(load_process::<MainnetV0>()?))
-                }
-                TestnetV0::ID => {
-                    Some(ProcessVariant::TestnetV0(load_process::<TestnetV0>()?))
-                }
-                CanaryV0::ID => {
-                    Some(ProcessVariant::CanaryV0(load_process::<CanaryV0>()?))
-                }
+                MainnetV0::ID => Some(ProcessVariant::MainnetV0(load_process::<MainnetV0>()?)),
+                TestnetV0::ID => Some(ProcessVariant::TestnetV0(load_process::<TestnetV0>()?)),
+                CanaryV0::ID => Some(ProcessVariant::CanaryV0(load_process::<CanaryV0>()?)),
                 _ => panic!("Invalid network"),
             };
         };
