@@ -1,0 +1,17 @@
+[package]
+name = "block-parser"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "block_parser"
+path = "src/lib.rs"
+
+[dependencies.serde_json]
+version = "1.0.117"
+
+[dependencies.snarkvm]
+workspace = true
+[dependencies]
+anyhow = "1.0.86"
+serde = { version = "1.0.203", features = ["derive"] }
