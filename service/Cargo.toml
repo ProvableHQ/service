@@ -4,8 +4,12 @@ resolver = "2"
 members = [
 	"authorize-service",
 	"execute-service",
-	"transfer-client"
+	"transfer-client",
+	"block-parser",
 ]
+
+[workspace.dependencies]
+snarkvm = { git = "https://github.com/ProvableHQ/snarkVM.git", rev = "140ff26" }
 
 [profile.release]
 opt-level = 3

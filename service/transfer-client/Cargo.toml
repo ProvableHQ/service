@@ -16,8 +16,7 @@ version = "1.0.75"
 version = "0.3.1"
 
 [dependencies.snarkvm]
-git = "https://github.com/AleoHQ/snarkVM.git"
-rev = "140ff26"
+workspace = true
 
 [dependencies.tokio]
 version = "1.33.0"
