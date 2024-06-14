@@ -1,7 +1,10 @@
 use anyhow::{bail, Error, Result};
 
 use snarkvm::prelude::integer_type::CheckedAbs;
-use snarkvm::prelude::{Address, bech32, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Output, Parser, Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value};
+use snarkvm::prelude::{
+    bech32, Address, Argument, Block, FromBytes, Future, Identifier, Input, Itertools, Literal,
+    Network, Output, Parser, Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value,
+};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::iter::Map;
@@ -39,121 +42,175 @@ pub fn process_block_transactions<N: Network>(
     bonded_mapping: &str,
     unbonding_mapping: &str,
     block: &str,
-) -> HashMap<N::TransactionID, (Address<N>, u64)> {
+) -> Result<HashMap<N::TransactionID, (Address<N>, u64)>> {
     // Initialize the bonded mapping.
-    let mut bonded_map = deserialize_mapping::<N>(bonded_mapping).unwrap();
+    let mut bonded_map = deserialize_bonded_mapping::<N>(bonded_mapping)?;
     // Initialize the unbonding mapping.
-    let mut unbonding_map = deserialize_mapping::<N>(unbonding_mapping).unwrap_or_default();
+    let mut unbonding_map =
+        deserialize_unbonding_mapping::<N>(unbonding_mapping).unwrap_or_default();
     // resulting map to return
     let mut tx_balances: HashMap<N::TransactionID, (Address<N>, u64)> = HashMap::new();
-    let block_txs: Transactions<N> = gather_block_transactions::<N>(block).unwrap();
+    let block_txs: Transactions<N> = gather_block_transactions::<N>(block)?;
 
     // Iterate over transactions - check internal state, update, continue
     for tx in block_txs.executions() {
-        if tx.is_accepted() {
-            for transition in tx.transitions() {
-                if transition.program_id() == &ProgramID::from_str("credits.aleo").unwrap() {
-                    match transition.function_name() {
-                        bond if &Identifier::<N>::from_str("bond_public").unwrap() == bond => {
-                            // get bonded value and add to internal state map
-                            let input = transition.inputs().get(0).unwrap();
-                            let input_value = transition.inputs().get(1).unwrap();
+        for transition in tx.transitions() {
+            if transition.program_id() == &ProgramID::from_str("credits.aleo")? {
+                match transition.function_name().to_string().as_str() {
+                    "bond_public" => {
+                        // Get the inputs.
+                        let inputs = transition.inputs();
 
-                            let address = match input {
-                                Input::Public(
-                                    _,
-                                    Some(Plaintext::Literal(Literal::Address(address), _)),
-                                ) => address,
-                                _ => panic!("Unexpected"),
-                            };
+                        // Get the address from the inputs.
+                        let first_input = inputs
+                            .get(0)
+                            .ok_or(Error::msg("Failed to get first input"))?;
+                        let address = get_address_from_input(first_input)?;
 
-                            let value = match input_value {
-                                Input::Public(
-                                    _,
-                                    Some(Plaintext::Literal(Literal::U64(value), _)),
-                                ) => value,
-                                _ => panic!("Caught no value"),
-                            };
+                        // Get the amount from the inputs.
+                        let second_input = inputs
+                            .get(1)
+                            .ok_or(Error::msg("Failed to get second input"))?;
+                        let amount = get_u64_from_input(second_input)?;
 
-                            if bonded_map.get(address).is_none() {
-                                bonded_map.insert(*address, **value);
-                            } else {
-                                // get previous value and add
-                                let tmp_value = bonded_map.get(address).unwrap();
-                                bonded_map.insert(*address, tmp_value + **value);
-                            }
-                            tx_balances.insert(tx.id(), (*address, *bonded_map.get(address).unwrap()));
-                        }
-                        unbond
-                            if &Identifier::<N>::from_str("unbond_public").unwrap() == unbond =>
-                        {
-                            //todo double check this logic -- do we need to know if staked_address == validator
-                            let input = transition.inputs().get(0).unwrap();
-                            let input_value = transition.inputs().get(1).unwrap();
-                            let staked_address = match input {
-                                Input::Public(
-                                    _,
-                                    Some(Plaintext::Literal(Literal::Address(address), _)),
-                                ) => address,
-                                _ => panic!("Unexpected"),
-                            };
+                        // Update the bonded mapping.
+                        bonded_map
+                            .entry(address)
+                            .and_modify(|(_, microcredits)| *microcredits += amount)
+                            .or_insert((address, amount));
 
-                            let unbond_amount = match input_value {
-                                Input::Public(
-                                    _,
-                                    Some(Plaintext::Literal(Literal::U64(value), _)),
-                                ) => value,
-                                _ => panic!("Caught no value"),
-                            };
-                            // get previous unbonding
-                            let prev_unbonding = *unbonding_map.get(staked_address).unwrap();
-                            let prev_bonded = bonded_map.get(staked_address).unwrap();
-                            let tmp_new_amount = prev_unbonding + **unbond_amount;
-
-                            if prev_unbonding - **unbond_amount < 10_000_000u64 {
-                                unbonding_map.insert(*staked_address, tmp_new_amount);
-                                bonded_map.insert(*staked_address, prev_bonded - prev_unbonding);
-                                tx_balances.insert(tx.id(), (*staked_address, prev_unbonding));
-                            } else {
-                                let new_amount = prev_unbonding + (prev_unbonding - **unbond_amount);
-                                let new_bond = prev_bonded - (prev_unbonding - **unbond_amount);
-                                unbonding_map.insert(*staked_address, new_amount);
-                                bonded_map.insert(*staked_address, new_bond);
-                                tx_balances.insert(tx.id(), (*staked_address, **unbond_amount));
-                            }
-
-                        }
-                        claim
-                            if &Identifier::<N>::from_str("claim_unbond_public").unwrap()
-                                == claim =>
-                        {
-                            let input = transition.inputs().get(0).unwrap();
-                            let claim_address = match input {
-                                Input::Public(
-                                    _,
-                                    Some(Plaintext::Literal(Literal::Address(address), _)),
-                                ) => address,
-                                _ => panic!("Unexpected"),
-                            };
-                            let claim_amount = unbonding_map.get(claim_address).unwrap_or(&0u64);
-                            tx_balances.insert(tx.id(), (*claim_address, *claim_amount));
-                        }
-                        _ => continue,
+                        // Update the transaction balances.
+                        tx_balances.insert(tx.id(), (address, amount));
                     }
+                    "unbond_public" => {
+                        // Get the inputs.
+                        let inputs = transition.inputs();
+
+                        // Get the staker address from the inputs.
+                        let first_input = inputs
+                            .get(0)
+                            .ok_or(Error::msg("Failed to get first input"))?;
+                        let staker_address = get_address_from_input(first_input)?;
+
+                        // Get the amount to unbond from the inputs.
+                        let second_input = inputs
+                            .get(1)
+                            .ok_or(Error::msg("Failed to get second input"))?;
+                        let unbond_amount = get_u64_from_input(second_input)?;
+
+                        // Get the bond state for the staker address.
+                        let bond_state = bonded_map
+                            .get(&staker_address)
+                            .ok_or(Error::msg("Failed to get bond state"))?;
+
+                        // Get the threshold for unbonding.
+                        // If the staker is a validator, the threshold is 10_000_000_000_000 microcredits.
+                        // Otherwise, the threshold is 10_000_000_000 microcredits.
+                        let threshold = if staker_address == bond_state.0 {
+                            10_000_000_000_000u64
+                        } else {
+                            10_000_000_000u64
+                        };
+
+                        // get previous unbonding
+                        let prev_unbonding = *unbonding_map.get(&staker_address).unwrap_or(&0u64);
+                        let (prev_validator, prev_bonded) = *bonded_map
+                            .get(&staker_address)
+                            .unwrap_or(&(staker_address, 0u64));
+                        let tmp_new_amount = prev_unbonding + unbond_amount;
+
+                        if prev_unbonding - unbond_amount < threshold {
+                            unbonding_map.insert(staker_address, tmp_new_amount);
+                            bonded_map.insert(
+                                staker_address,
+                                (prev_validator, prev_bonded - prev_unbonding),
+                            );
+                            tx_balances.insert(tx.id(), (staker_address, prev_unbonding));
+                        } else {
+                            let new_amount = prev_unbonding + (prev_unbonding - unbond_amount);
+                            let new_bond = prev_bonded - (prev_unbonding - unbond_amount);
+                            unbonding_map.insert(staker_address, new_amount);
+                            bonded_map.insert(staker_address, (prev_validator, new_bond));
+                            tx_balances.insert(tx.id(), (staker_address, unbond_amount));
+                        }
+                    }
+                    "claim_unbond_public" => {
+                        // Get the inputs.
+                        let inputs = transition.inputs();
+
+                        // Get the address from the inputs.
+                        let first_input = inputs
+                            .first()
+                            .ok_or(Error::msg("Failed to get first input"))?;
+                        let address = get_address_from_input(first_input)?;
+
+                        // Get the amount from the unbonding mapping.
+                        let amount = unbonding_map.get(&address).unwrap_or(&0u64);
+
+                        // Update the transaction balances.
+                        tx_balances.insert(tx.id(), (address, *amount));
+                    }
+                    _ => continue,
                 }
-            }
+            .}
         }
     }
     // output the updated map
     println!("Block State is: {:?}", tx_balances);
-    tx_balances
+    Ok(tx_balances)
 }
 
-// A helper function to deserialize a mapping from a JSON string.
-// Note that this function can be used for both the bonded and unbonding mappings.
-// This is because both mappings use addresses as keys and use structs (`bond_state` and `unbond_state`)
-// containing a `microcredits` field as values.
-fn deserialize_mapping<N: Network>(string: &str) -> Result<HashMap<Address<N>, u64>> {
+// A helper function to get an address from an input.
+fn get_address_from_input<N: Network>(input: &Input<N>) -> Result<Address<N>> {
+    match input {
+        Input::Public(_, Some(Plaintext::Literal(Literal::Address(address), _))) => Ok(*address),
+        _ => bail!("Failed to extract address"),
+    }
+}
+
+// A helper function to get an u64 from an input.
+fn get_u64_from_input<N: Network>(input: &Input<N>) -> Result<u64> {
+    match input {
+        Input::Public(_, Some(Plaintext::Literal(Literal::U64(value), _))) => Ok(**value),
+        _ => bail!("Failed to extract address"),
+    }
+}
+
+// A helper function to deserialize the bonded mapping from a JSON string.
+fn deserialize_bonded_mapping<N: Network>(
+    string: &str,
+) -> Result<HashMap<Address<N>, (Address<N>, u64)>> {
+    // Deserialize the JSON string into a vector of entries.
+    let entries: Vec<(Plaintext<N>, Value<N>)> = serde_json::from_str(string)?;
+    // Map the entries into a map of addresses to bonded amounts.
+    let mapping = entries.into_iter().map(|(key, value)| {
+        // Extract the address.
+        let address = match key {
+            Plaintext::Literal(Literal::Address(address), _) => address,
+            _ => bail!("Failed to extract address info"),
+        };
+        // Extract the validator and microcredits.
+        let data = match value {
+            Value::Plaintext(Plaintext::Struct(members, _)) => {
+                let validator = match members.get(&Identifier::from_str("validator")?) {
+                    Some(Plaintext::Literal(Literal::Address(address), _)) => *address,
+                    _ => bail!("Failed to extract validator"),
+                };
+                let microcredits = match members.get(&Identifier::from_str("microcredits")?) {
+                    Some(Plaintext::Literal(Literal::U64(microcredits), _)) => **microcredits,
+                    _ => bail!("Failed to extract microcredits"),
+                };
+                (validator, microcredits)
+            }
+            _ => bail!("Failed to extract validator address"),
+        };
+        Ok((address, data))
+    });
+    mapping.collect()
+}
+
+// A helper function to deserialize the unbonding mapping from a JSON string.
+fn deserialize_unbonding_mapping<N: Network>(string: &str) -> Result<HashMap<Address<N>, u64>> {
     // Deserialize the JSON string into a vector of entries.
     let entries: Vec<(Plaintext<N>, Value<N>)> = serde_json::from_str(string)?;
     // Map the entries into a map of addresses to bonded amounts.
@@ -166,11 +223,9 @@ fn deserialize_mapping<N: Network>(string: &str) -> Result<HashMap<Address<N>, u
         // Extract the microcredits.
         let microcredits = match value {
             Value::Plaintext(Plaintext::Struct(members, _)) => {
-                let value = members
-                    .get(&Identifier::from_str("microcredits").unwrap())
-                    .unwrap();
+                let value = members.get(&Identifier::from_str("microcredits")?);
                 match value {
-                    Plaintext::Literal(Literal::U64(value), _) => **value,
+                    Some(Plaintext::Literal(Literal::U64(value), _)) => **value,
                     _ => bail!("Failed to extract bond amount"),
                 }
             }
@@ -189,6 +244,8 @@ mod tests {
     use std::io::Read;
     use std::string::String;
 
+    type CurrentNetwork = TestnetV0;
+
     #[test]
     fn read_block_with_zero_txs() {
         // read in json block file from tests
@@ -198,7 +255,7 @@ mod tests {
         file.read_to_string(&mut buffer)
             .expect("Failed to process json");
         // pass in block with zero transactions
-        let test = gather_block_transactions::<TestnetV0>(&buffer).unwrap();
+        let test = gather_block_transactions::<CurrentNetwork>(&buffer).unwrap();
         assert_eq!(test.len(), 0)
     }
 
@@ -210,7 +267,7 @@ mod tests {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)
             .expect("Failed to process json");
-        assert!(deserialize_mapping::<TestnetV0>(&buffer).is_ok());
+        assert!(deserialize_bonded_mapping::<CurrentNetwork>(&buffer).is_ok());
     }
 
     #[test]
@@ -221,7 +278,7 @@ mod tests {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)
             .expect("Failed to process json");
-        assert!(deserialize_mapping::<TestnetV0>(&buffer).is_ok());
+        assert!(deserialize_unbonding_mapping::<CurrentNetwork>(&buffer).is_ok());
     }
 
     #[test]
@@ -236,9 +293,12 @@ mod tests {
         let bonded_fp = "tests/test_bond_public/bonded.json";
         let mut bonded_file = File::open(bonded_fp).expect("Failed to open file");
         let mut bonded_buffer = String::new();
-        bonded_file.read_to_string(&mut bonded_buffer)
+        bonded_file
+            .read_to_string(&mut bonded_buffer)
             .expect("Failed to process json");
-        let result_map = process_block_transactions::<TestnetV0>(&bonded_buffer, "", &block_buffer);
+        let result_map =
+            process_block_transactions::<CurrentNetwork>(&bonded_buffer, "", &block_buffer)
+                .unwrap();
         assert!(!result_map.is_empty())
     }
 }
