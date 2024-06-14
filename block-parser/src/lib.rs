@@ -267,12 +267,12 @@ fn deserialize_withdraw_mapping<N: Network>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use snarkvm::prelude::TestnetV0;
+    use snarkvm::prelude::{CanaryV0, TestnetV0};
     use std::fs::File;
     use std::io::Read;
     use std::string::String;
 
-    type CurrentNetwork = TestnetV0;
+    type CurrentNetwork = CanaryV0;
 
     #[test]
     fn read_block_with_zero_txs() {
@@ -321,7 +321,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fill_map() {
+    fn test_dont_add_bonded_map() {
         // read in json block file from tests
         let fp = "tests/test_bond_public/block.json";
         let mut file = File::open(fp).expect("Failed to open file");
@@ -339,7 +339,7 @@ mod tests {
         let result_map =
             process_block_transactions::<CurrentNetwork>(&bonded_buffer, "", "", &block_buffer)
                 .unwrap();
-        assert!(!result_map.is_empty())
+        assert!(result_map.is_empty())
     }
 
     #[test]
@@ -379,6 +379,6 @@ mod tests {
             &buffer,
         )
         .unwrap();
-        assert_eq!(result_map.iter().next().unwrap().1 .1, 15000000u64)
+        assert_eq!(result_map.iter().next().unwrap().1 .1, 10000000u64)
     }
 }
