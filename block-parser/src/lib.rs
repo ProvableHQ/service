@@ -1,11 +1,9 @@
 use anyhow::{bail, Error, Result};
 
 use snarkvm::prelude::integer_type::CheckedAbs;
-use snarkvm::prelude::{
-    Address, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Output, Parser,
-    Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value,
-};
+use snarkvm::prelude::{Address, bech32, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Output, Parser, Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value};
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::iter::Map;
 use std::ops::{Add, Deref};
 use std::slice::Iter;
@@ -45,9 +43,9 @@ pub fn process_block_transactions<N: Network>(
     // Initialize the bonded mapping.
     let mut bonded_map = deserialize_mapping::<N>(bonded_mapping).unwrap();
     // Initialize the unbonding mapping.
-    let mut unbonding_map = deserialize_mapping::<N>(unbonding_mapping).unwrap();
+    let mut unbonding_map = deserialize_mapping::<N>(unbonding_mapping).unwrap_or_default();
     // resulting map to return
-    let tx_values: HashMap<N::TransactionID, (Address<N>, u64)> = HashMap::new();
+    let mut tx_balances: HashMap<N::TransactionID, (Address<N>, u64)> = HashMap::new();
     let block_txs: Transactions<N> = gather_block_transactions::<N>(block).unwrap();
 
     // Iterate over transactions - check internal state, update, continue
@@ -84,6 +82,7 @@ pub fn process_block_transactions<N: Network>(
                                 let tmp_value = bonded_map.get(address).unwrap();
                                 bonded_map.insert(*address, tmp_value + **value);
                             }
+                            tx_balances.insert(tx.id(), (*address, *bonded_map.get(address).unwrap()));
                         }
                         unbond
                             if &Identifier::<N>::from_str("unbond_public").unwrap() == unbond =>
@@ -103,8 +102,8 @@ pub fn process_block_transactions<N: Network>(
                                 ) => address,
                                 _ => panic!("Unexpected"),
                             };
-                            //todo: get the claim value for the address from the unbonding mapping by passing it in
-                            calculate_mappings::<N>(bonded_mapping, unbonding_mapping, "")
+                            let claim_amount = unbonding_map.get(claim_address).unwrap_or(&0u64);
+                            tx_balances.insert(tx.id(), (*claim_address, *claim_amount));
                         }
                         _ => continue,
                     }
@@ -113,36 +112,8 @@ pub fn process_block_transactions<N: Network>(
         }
     }
     // output the updated map
-    println!("INTERNAL STATE: {:?}", bonded_map);
-    tx_values
-}
-
-/*
-Flow of calculation:
-    - Pass in function call, prev_bonded_map, prev_unbond_map, address
- */
-fn calculate_mappings<N>(
-    prev_blocks_bonded: &str,
-    prev_blocks_unbonding: &str,
-    claim_address: &str,
-) {
-    let bonded: Result<Vec<(Plaintext<TestnetV0>, Value<TestnetV0>)>, serde_json::Error> =
-        serde_json::from_str(prev_blocks_bonded);
-    let unbonding: Result<Vec<(Plaintext<TestnetV0>, Value<TestnetV0>)>, serde_json::Error> =
-        serde_json::from_str(prev_blocks_unbonding);
-
-    let bondings = bonded.unwrap();
-    let unbondings = unbonding.unwrap_or(Vec::new());
-
-    //todo process the bonding/unbonding mappings into IndexMap to allow easy lookup by Address<N>
-
-    // let address_bonded_amount = bondings.map(|(key, value)| {
-    //     let address_rep: Result<(Address<TestnetV0>, Value<TestnetV0>), anyhow::Error> = match key {
-    //          Plaintext::Literal(Literal::Address(address), _) => Ok((*address, value.clone())),
-    //         _ => bail!("Failed to extract address info"),
-    //     };
-    //     address_rep
-    // });
+    println!("Block State is: {:?}", tx_balances);
+    tx_balances
 }
 
 // A helper function to deserialize a mapping from a JSON string.
@@ -221,30 +192,20 @@ mod tests {
     }
 
     #[test]
-    fn check_program_calls() {
+    fn test_fill_map() {
         // read in json block file from tests
-        let fp = "tests/block.json";
+        let fp = "tests/test_bond_public/block.json";
         let mut file = File::open(fp).expect("Failed to open file");
-        let mut buffer = String::new();
-        file.read_to_string(&mut buffer)
+        let mut block_buffer = String::new();
+        file.read_to_string(&mut block_buffer)
             .expect("Failed to process json");
-        // pass in block with zero transactions
-        let test = process_block_transactions::<TestnetV0>("", "", &buffer);
-    }
 
-    #[test]
-    fn process_bonded_map() {
-        // read in json block file from tests
-        let fp = "tests/bonded.json";
-        let mut file = File::open(fp).expect("Failed to open file");
-        let mut buffer = String::new();
-        file.read_to_string(&mut buffer)
+        let bonded_fp = "tests/test_bond_public/bonded.json";
+        let mut bonded_file = File::open(bonded_fp).expect("Failed to open file");
+        let mut bonded_buffer = String::new();
+        bonded_file.read_to_string(&mut bonded_buffer)
             .expect("Failed to process json");
-        // pass in block with zero transactions
-        let test = calculate_mappings::<TestnetV0>(
-            &buffer,
-            "",
-            "aleo1s3ws5tra87fjycnjrwsjcrnw2qxr8jfqqdugnf0xzqqw29q9m5pqem2u4t",
-        );
+        let result_map = process_block_transactions::<TestnetV0>(&bonded_buffer, "", &block_buffer);
+        assert!(!result_map.is_empty())
     }
 }
