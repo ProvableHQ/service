@@ -2,14 +2,12 @@ use anyhow::{bail, Error, Result};
 
 use snarkvm::prelude::integer_type::CheckedAbs;
 use snarkvm::prelude::{
-    bech32, Address, Argument, Block, FromBytes, Future, Identifier, Input, Itertools, Literal,
-    Network, Output, Parser, Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value,
+    Address, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Parser, Plaintext,
+    ProgramID, TestnetV0, Transactions, Value,
 };
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::iter::Map;
 use std::ops::{Add, Deref};
-use std::slice::Iter;
 use std::str::FromStr;
 
 /*
@@ -104,7 +102,7 @@ pub fn process_block_transactions<N: Network>(
                             .ok_or(Error::msg("Failed to get bond state"))?;
 
                         // Get the threshold for unbonding.
-                        // If the staker is a validator, the threshold is 10_000_000_000_000 microcredits.
+                        // If the staker is a validator, the threshold is 10_000_000_000 microcredits.
                         // Otherwise, the threshold is 10_000_000_000 microcredits.
                         let threshold = if staker_address == bond_state.0 {
                             10_000_000_000_000u64
@@ -152,11 +150,10 @@ pub fn process_block_transactions<N: Network>(
                     }
                     _ => continue,
                 }
-            .}
+            }
         }
     }
     // output the updated map
-    println!("Block State is: {:?}", tx_balances);
     Ok(tx_balances)
 }
 
@@ -300,5 +297,33 @@ mod tests {
             process_block_transactions::<CurrentNetwork>(&bonded_buffer, "", &block_buffer)
                 .unwrap();
         assert!(!result_map.is_empty())
+    }
+
+    #[test]
+    fn test_complex_mapping() {
+        // read in json block file from tests
+        let fp = "tests/test_complex_bond_and_unbond/block.json";
+        let mut file = File::open(fp).expect("Failed to open file");
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)
+            .expect("Failed to process json");
+
+        let bonded_fp = "tests/test_complex_bond_and_unbond/bonded.json";
+        let mut bonded_file = File::open(bonded_fp).expect("Failed to open file");
+        let mut bonded_buffer = String::new();
+        bonded_file
+            .read_to_string(&mut bonded_buffer)
+            .expect("Failed to process json");
+
+        let unbonded_fp = "tests/test_complex_bond_and_unbond/bonded.json";
+        let mut unbonded_file = File::open(unbonded_fp).expect("Failed to open file");
+        let mut unbonded_buffer = String::new();
+        unbonded_file
+            .read_to_string(&mut unbonded_buffer)
+            .expect("Failed to process json");
+        let result_map =
+            process_block_transactions::<CurrentNetwork>(&bonded_buffer, &unbonded_buffer, &buffer)
+                .unwrap();
+        assert_eq!(result_map.iter().next().unwrap().1 .1, 15000000u64)
     }
 }
