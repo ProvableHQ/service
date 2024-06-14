@@ -87,8 +87,41 @@ pub fn process_block_transactions<N: Network>(
                         unbond
                             if &Identifier::<N>::from_str("unbond_public").unwrap() == unbond =>
                         {
-                            //todo evaluate unbonding amount based on previous bonded/unbonding actions in block & block-1 mapping
-                            println!("2 {:?}", unbond)
+                            //todo double check this logic -- do we need to know if staked_address == validator
+                            let input = transition.inputs().get(0).unwrap();
+                            let input_value = transition.inputs().get(1).unwrap();
+                            let staked_address = match input {
+                                Input::Public(
+                                    _,
+                                    Some(Plaintext::Literal(Literal::Address(address), _)),
+                                ) => address,
+                                _ => panic!("Unexpected"),
+                            };
+
+                            let unbond_amount = match input_value {
+                                Input::Public(
+                                    _,
+                                    Some(Plaintext::Literal(Literal::U64(value), _)),
+                                ) => value,
+                                _ => panic!("Caught no value"),
+                            };
+                            // get previous unbonding
+                            let prev_unbonding = *unbonding_map.get(staked_address).unwrap();
+                            let prev_bonded = bonded_map.get(staked_address).unwrap();
+                            let tmp_new_amount = prev_unbonding + **unbond_amount;
+
+                            if prev_unbonding - **unbond_amount < 10_000_000u64 {
+                                unbonding_map.insert(*staked_address, tmp_new_amount);
+                                bonded_map.insert(*staked_address, prev_bonded - prev_unbonding);
+                                tx_balances.insert(tx.id(), (*staked_address, prev_unbonding));
+                            } else {
+                                let new_amount = prev_unbonding + (prev_unbonding - **unbond_amount);
+                                let new_bond = prev_bonded - (prev_unbonding - **unbond_amount);
+                                unbonding_map.insert(*staked_address, new_amount);
+                                bonded_map.insert(*staked_address, new_bond);
+                                tx_balances.insert(tx.id(), (*staked_address, **unbond_amount));
+                            }
+
                         }
                         claim
                             if &Identifier::<N>::from_str("claim_unbond_public").unwrap()
