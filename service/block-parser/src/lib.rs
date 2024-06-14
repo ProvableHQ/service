@@ -1,11 +1,16 @@
 use anyhow::{bail, Error, Result};
 
-use snarkvm::prelude::{Address, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Output, Parser, Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value};
-use std::collections::HashMap;
-use std::ops::Add;
-use std::str::FromStr;
+use snarkvm::circuit::prelude::IndexMap;
 use snarkvm::prelude::integer_type::CheckedAbs;
-use snarkvm::prelude::LiteralType::Address;
+use snarkvm::prelude::{
+    Address, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Output, Parser,
+    Plaintext, ProgramID, TestnetV0, Transactions, Transition, Value,
+};
+use std::collections::HashMap;
+use std::iter::Map;
+use std::ops::{Add, Deref};
+use std::slice::Iter;
+use std::str::FromStr;
 
 /*
 This function reads in the json form of an Aleo block
@@ -27,19 +32,24 @@ pub fn gather_block_transactions<N: Network>(json: &str) -> Result<Transactions<
     }
 }
 
+/*
+Iterates over all transactions in a block to calculate their respective values
+If the transition calls credits.aleo program, then we evaluate specific function calls
+These calls are (bond_public, unbond_public, and claim_unbond_public)
+Returns a HashMap<TransactionID, (Address, u64)>
+ */
 pub fn process_block_transactions<N: Network>(
     bonded_mapping: &str,
     unbonded_mapping: &str,
     block: &str,
-) -> HashMap<String, (String, u64)> {
-    let mut internal_block_state: HashMap<&Address<N>, &u64> = HashMap::new();
-    let tx_values: HashMap<String, (String, u64)> = HashMap::new();
-
-    // let bonded = serde_json::from_str(bonded_mapping);
-    // let unbonded = serde_json::from_str(unbonded_mapping);
+) -> HashMap<String, (Address<N>, u64)> {
+    let mut internal_block_state: HashMap<&Address<N>, u64> = HashMap::new();
+    // resulting map to return
+    let tx_values: HashMap<String, (Address<N>, u64)> = HashMap::new();
     let block_txs: Transactions<N> = gather_block_transactions::<N>(block).unwrap();
 
     match block_txs.len() {
+        // if there are no transactions -> return empty HashMap
         0 => tx_values,
         _ => {
             // iterate over transactions - check internal state, update, continue
@@ -57,27 +67,34 @@ pub fn process_block_transactions<N: Network>(
                                     let input_value = transition.inputs().get(1).unwrap();
 
                                     let address = match input {
-                                        Input::Public(_, Some(Plaintext::Literal(Literal::Address(address), _))) => address,
-                                        _ => panic!("Unexpected")
+                                        Input::Public(
+                                            _,
+                                            Some(Plaintext::Literal(Literal::Address(address), _)),
+                                        ) => address,
+                                        _ => panic!("Unexpected"),
                                     };
 
                                     let value = match input_value {
-                                        Input::Public(_, Some(Plaintext::Literal(Literal::U64(value),_))) => value,
-                                        _ => panic!("Caught no value")
+                                        Input::Public(
+                                            _,
+                                            Some(Plaintext::Literal(Literal::U64(value), _)),
+                                        ) => value,
+                                        _ => panic!("Caught no value"),
                                     };
 
                                     if internal_block_state.get(address).is_none() {
-                                        internal_block_state.insert(address, value);
+                                        internal_block_state.insert(address, **value);
                                     } else {
                                         // get previous value and add
-                                        println!("{:?}", value.checked_abs());
-                                        // internal_block_state.insert(address, value.add(internal_block_state.get(address).unwrap()));
+                                        let tmp_value = internal_block_state.get(address).unwrap();
+                                        internal_block_state.insert(address, tmp_value + **value);
                                     }
                                 }
                                 unbond
                                     if &Identifier::<N>::from_str("unbond_public").unwrap()
                                         == unbond =>
                                 {
+                                    //todo evaluate unbonded amount based on previous bonded/unbonding actions in block & block-1 mapping
                                     println!("2 {:?}", unbond)
                                 }
                                 claim
@@ -85,8 +102,16 @@ pub fn process_block_transactions<N: Network>(
                                         .unwrap()
                                         == claim =>
                                 {
-                                    // get the claim value for the address from the unbonding mapping
-                                    calculate_mappings(bonded_mapping, unbonded_mapping, address)
+                                    let input = transition.inputs().get(0).unwrap();
+                                    let claim_address = match input {
+                                        Input::Public(
+                                            _,
+                                            Some(Plaintext::Literal(Literal::Address(address), _)),
+                                        ) => address,
+                                        _ => panic!("Unexpected"),
+                                    };
+                                    //todo: get the claim value for the address from the unbonding mapping by passing it in
+                                    calculate_mappings::<N>(bonded_mapping, unbonded_mapping, "")
                                 }
                                 _ => continue,
                             }
@@ -108,25 +133,25 @@ Flow of calculation:
 fn calculate_mappings<N>(
     prev_blocks_bonded: &str,
     prev_blocks_unbonded: &str,
-    staked_address: &str,
+    claim_address: &str,
 ) {
     let bonded: Result<Vec<(Plaintext<TestnetV0>, Value<TestnetV0>)>, serde_json::Error> =
         serde_json::from_str(prev_blocks_bonded);
+    let unbonded: Result<Vec<(Plaintext<TestnetV0>, Value<TestnetV0>)>, serde_json::Error> =
+        serde_json::from_str(prev_blocks_unbonded);
 
     let bondings = bonded.unwrap();
-    let address_bonded_amount = bondings.iter().map(|(key, value)| {
-        let address_rep: Result<(Address<TestnetV0>, Value<TestnetV0>), anyhow::Error> = match key {
-             Address::from_str(staked_address) == Plaintext::Literal(Literal::Address(address), _) => Ok((*address, value.clone())),
-            _ => bail!("Failed to extract address"),
-        };
-        address_rep
-    });
-    println!("{:?}", address_bonded_amount)
+    let unbondings = unbonded.unwrap_or(Vec::new());
 
-    // let unbonded: Result<Vec<(Plaintext<TestnetV0>, Value<TestnetV0>)>, serde_json::Error> = serde_json::from_str(prev_blocks_unbonded);
-    // println!("{:?}", unbonded);
+    //todo process the bonding/unbonded mappings into IndexMap to allow easy lookup by Address<N>
 
-    //use values from one or both to calculate actual amount
+    // let address_bonded_amount = bondings.map(|(key, value)| {
+    //     let address_rep: Result<(Address<TestnetV0>, Value<TestnetV0>), anyhow::Error> = match key {
+    //          Plaintext::Literal(Literal::Address(address), _) => Ok((*address, value.clone())),
+    //         _ => bail!("Failed to extract address info"),
+    //     };
+    //     address_rep
+    // });
 }
 
 #[cfg(test)]
