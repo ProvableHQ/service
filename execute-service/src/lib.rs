@@ -29,10 +29,11 @@ pub use request::*;
 pub mod routes;
 pub use routes::*;
 
-use snarkvm::circuit::{Aleo, AleoTestnetV0, AleoV0};
+use snarkvm::circuit::{Aleo, AleoCanaryV0, AleoTestnetV0, AleoV0};
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Authorization, FromBytes, Locator, MainnetV0, Network, Process, StatePath, TestnetV0, ToBytes,
+    Authorization, CanaryV0, FromBytes, Locator, MainnetV0, Network, Process, StatePath, TestnetV0,
+    ToBytes,
 };
 
 use anyhow::{anyhow, Result};

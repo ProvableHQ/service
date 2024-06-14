@@ -29,22 +29,26 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
         // Initialize the process if it is not already initialized.
         if process.borrow().is_none() {
             *process.borrow_mut() = match N::ID {
-                MainnetV0::ID => {
-                    println!("Loading mainnet process...");
-                    Some(ProcessVariant::MainnetV0(
-                        Process::load().expect("Failed to load mainnet process"),
-                    ))
-                }
-                TestnetV0::ID => {
-                    println!("Loading testnet process...");
-                    Some(ProcessVariant::TestnetV0(
-                        Process::load().expect("Failed to load testnet process"),
-                    ))
-                }
+                MainnetV0::ID => Some(ProcessVariant::MainnetV0(load_process::<MainnetV0>()?)),
+                TestnetV0::ID => Some(ProcessVariant::TestnetV0(load_process::<TestnetV0>()?)),
+                CanaryV0::ID => Some(ProcessVariant::CanaryV0(load_process::<CanaryV0>()?)),
                 _ => panic!("Invalid network"),
             };
         };
         // Compute the `Execution`.
         process.borrow().as_ref().unwrap().execute(&bytes)
     })
+}
+
+/// A helper function to load a Process and the necessary proving keys.
+pub fn load_process<N: Network>() -> Result<Process<N>> {
+    // Load the process.
+    let process = Process::load()?;
+    // Initialize the proving keys for the functions in credits.aleo.
+    let credits_program = process.get_program("credits.aleo")?;
+    for (function_name, _) in credits_program.functions() {
+        // Get the proving key. This method will load the proving key if it does not exist.
+        let _ = process.get_proving_key("credits.aleo", function_name)?;
+    }
+    Ok(process)
 }

@@ -43,23 +43,20 @@ pub fn process_block_transactions<N: Network>(
     block: &str,
 ) -> HashMap<N::TransactionID, (Address<N>, u64)> {
     // Initialize the bonded mapping.
-    let mut bonded_map = deserialize_bonded_mapping::<N>(bonded_mapping).unwrap();
+    let mut bonded_map = deserialize_mapping::<N>(bonded_mapping).unwrap();
     // Initialize the unbonding mapping.
-    let mut unbonding_map = deserialize_unbonding_mapping::<N>(unbonding_mapping).unwrap();
+    let mut unbonding_map = deserialize_mapping::<N>(unbonding_mapping).unwrap();
     // resulting map to return
-    let tx_values: HashMap<String, (Address<N>, u64)> = HashMap::new();
+    let tx_values: HashMap<N::TransactionID, (Address<N>, u64)> = HashMap::new();
     let block_txs: Transactions<N> = gather_block_transactions::<N>(block).unwrap();
 
     // Iterate over transactions - check internal state, update, continue
     for tx in block_txs.executions() {
         if tx.is_accepted() {
             for transition in tx.transitions() {
-                if transition.program_id() == &ProgramID::from_str("credits.aleo").unwrap()
-                {
+                if transition.program_id() == &ProgramID::from_str("credits.aleo").unwrap() {
                     match transition.function_name() {
-                        bond if &Identifier::<N>::from_str("bond_public").unwrap()
-                            == bond =>
-                        {
+                        bond if &Identifier::<N>::from_str("bond_public").unwrap() == bond => {
                             // get bonded value and add to internal state map
                             let input = transition.inputs().get(0).unwrap();
                             let input_value = transition.inputs().get(1).unwrap();
@@ -80,24 +77,22 @@ pub fn process_block_transactions<N: Network>(
                                 _ => panic!("Caught no value"),
                             };
 
-                            if internal_block_state.get(address).is_none() {
-                                internal_block_state.insert(address, **value);
+                            if bonded_map.get(address).is_none() {
+                                bonded_map.insert(*address, **value);
                             } else {
                                 // get previous value and add
-                                let tmp_value = internal_block_state.get(address).unwrap();
-                                internal_block_state.insert(address, tmp_value + **value);
+                                let tmp_value = bonded_map.get(address).unwrap();
+                                bonded_map.insert(*address, tmp_value + **value);
                             }
                         }
                         unbond
-                            if &Identifier::<N>::from_str("unbond_public").unwrap()
-                                == unbond =>
+                            if &Identifier::<N>::from_str("unbond_public").unwrap() == unbond =>
                         {
                             //todo evaluate unbonding amount based on previous bonded/unbonding actions in block & block-1 mapping
                             println!("2 {:?}", unbond)
                         }
                         claim
-                            if &Identifier::<N>::from_str("claim_unbond_public")
-                                .unwrap()
+                            if &Identifier::<N>::from_str("claim_unbond_public").unwrap()
                                 == claim =>
                         {
                             let input = transition.inputs().get(0).unwrap();
@@ -118,7 +113,7 @@ pub fn process_block_transactions<N: Network>(
         }
     }
     // output the updated map
-    println!("INTERNAL STATE: {:?}", internal_block_state);
+    println!("INTERNAL STATE: {:?}", bonded_map);
     tx_values
 }
 
@@ -167,19 +162,20 @@ fn deserialize_mapping<N: Network>(string: &str) -> Result<HashMap<Address<N>, u
         // Extract the microcredits.
         let microcredits = match value {
             Value::Plaintext(Plaintext::Struct(members, _)) => {
-                let value = members.get("microcredits").unwrap();
+                let value = members
+                    .get(&Identifier::from_str("microcredits").unwrap())
+                    .unwrap();
                 match value {
-                    Plaintext::Literal(Literal::U64(value), _) => value,
+                    Plaintext::Literal(Literal::U64(value), _) => **value,
                     _ => bail!("Failed to extract bond amount"),
                 }
             }
             _ => bail!("Failed to extract bond amount"),
         };
-        Ok((address, **microcredits))
+        Ok((address, microcredits))
     });
     mapping.collect()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -210,9 +206,7 @@ mod tests {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)
             .expect("Failed to process json");
-        // pass in block with zero transactions
-        let test = deserialize_mapping::<TestnetV0>(&buffer);
-        assert_eq!(test.len(), 0)
+        assert!(deserialize_mapping::<TestnetV0>(&buffer).is_ok());
     }
 
     #[test]
@@ -223,9 +217,7 @@ mod tests {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)
             .expect("Failed to process json");
-        // pass in block with zero transactions
-        let test = deserialize_mapping::<TestnetV0>(&buffer);
-        assert_eq!(test.len(), 0)
+        assert!(deserialize_mapping::<TestnetV0>(&buffer).is_ok());
     }
 
     #[test]

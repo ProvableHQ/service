@@ -16,8 +16,7 @@
 
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Field, FromBytes, Identifier, MainnetV0, Network, PrivateKey, ProgramID, ToBytes, Uniform,
-    Value, U64,
+    Field, FromBytes, Identifier, Network, PrivateKey, ProgramID, ToBytes, Uniform, Value, U64,
 };
 
 use authorize_service::*;
@@ -32,12 +31,12 @@ const KEYGEN_URL: &str = "http://localhost:8080/keygen";
 const AUTHORIZE_URL: &str = "http://localhost:8080/authorize";
 const EXECUTE_URL: &str = "http://localhost:8081/execute";
 
-const BROADCAST_URL: &str = "http://localhost:3033/mainnet/transaction/broadcast";
-const STATE_ROOT_URL: &str = "http://localhost:3033/mainnet/stateRoot/latest";
+const BROADCAST_URL: &str = "http://localhost:3033/canary/transaction/broadcast";
+const STATE_ROOT_URL: &str = "http://localhost:3033/canary/stateRoot/latest";
 
 const DEVNET_PRIVATE_KEY: &str = "APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH";
 
-type CurrentNetwork = snarkvm::prelude::MainnetV0;
+type CurrentNetwork = snarkvm::prelude::CanaryV0;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -125,7 +124,7 @@ async fn main() -> Result<()> {
     println!("Using state root: {}", state_root);
 
     // Construct an `ExecuteRequest`.
-    let execute_request = ExecuteRequest {
+    let execute_request = ExecuteRequest::<CurrentNetwork> {
         function_authorization: authorize_response.function_authorization,
         fee_authorization: authorize_response.fee_authorization,
         state_root: Some(state_root),
