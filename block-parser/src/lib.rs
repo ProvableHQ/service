@@ -1,14 +1,13 @@
 use anyhow::{bail, Error, Result};
 
-use snarkvm::prelude::integer_type::CheckedAbs;
 use snarkvm::prelude::{
-    Address, Block, FromBytes, Identifier, Input, Itertools, Literal, Network, Parser, Plaintext,
-    ProgramID, TestnetV0, Transactions, Value,
+    Address, Block, Identifier, Input, Literal, Network, Plaintext, ProgramID, Transactions, Value,
 };
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::ops::{Add, Deref};
 use std::str::FromStr;
+
+pub type TransactionAmounts<N> = HashMap<<N as Network>::TransactionID, (Address<N>, u64)>;
+pub type BondedMapping<N> = HashMap<Address<N>, (Address<N>, u64)>;
 
 /*
 This function reads in the json form of an Aleo block
@@ -33,19 +32,22 @@ pub fn gather_block_transactions<N: Network>(json: &str) -> Result<Transactions<
 /*
 Iterates over all transactions in a block to calculate their respective values
 If the transition calls credits.aleo program, then we evaluate specific function calls
-These calls are (bond_public, unbond_public, and claim_unbond_public)
+These calls are (unbond_public and claim_unbond_public)
 Returns a HashMap<TransactionID, (Address, u64)>
  */
 pub fn process_block_transactions<N: Network>(
     bonded_mapping: &str,
     unbonding_mapping: &str,
+    withdraw_mapping: &str,
     block: &str,
-) -> Result<HashMap<N::TransactionID, (Address<N>, u64)>> {
+) -> Result<TransactionAmounts<N>> {
     // Initialize the bonded mapping.
     let mut bonded_map = deserialize_bonded_mapping::<N>(bonded_mapping)?;
     // Initialize the unbonding mapping.
     let mut unbonding_map =
         deserialize_unbonding_mapping::<N>(unbonding_mapping).unwrap_or_default();
+    // Initialize the withdraw mapping.
+    let withdraw_map = deserialize_withdraw_mapping::<N>(withdraw_mapping).unwrap_or_default();
     // resulting map to return
     let mut tx_balances: HashMap<N::TransactionID, (Address<N>, u64)> = HashMap::new();
     let block_txs: Transactions<N> = gather_block_transactions::<N>(block)?;
@@ -59,42 +61,34 @@ pub fn process_block_transactions<N: Network>(
                         // Get the inputs.
                         let inputs = transition.inputs();
 
-                        // Get the address from the inputs.
-                        let first_input = inputs
-                            .get(0)
-                            .ok_or(Error::msg("Failed to get first input"))?;
-                        let address = get_address_from_input(first_input)?;
+                        // Check that the number of inputs is correct.
+                        if inputs.len() != 3 {
+                            bail!("Incorrect number of inputs");
+                        }
 
-                        // Get the amount from the inputs.
-                        let second_input = inputs
-                            .get(1)
-                            .ok_or(Error::msg("Failed to get second input"))?;
-                        let amount = get_u64_from_input(second_input)?;
-
+                        // Get the validator address from the inputs.
+                        let validator_address = get_address_from_input(&inputs[0])?;
+                        // Get the bond amount from the inputs.
+                        let bond_amount = get_u64_from_input(&inputs[2])?;
                         // Update the bonded mapping.
                         bonded_map
-                            .entry(address)
-                            .and_modify(|(_, microcredits)| *microcredits += amount)
-                            .or_insert((address, amount));
-
-                        // Update the transaction balances.
-                        tx_balances.insert(tx.id(), (address, amount));
+                            .entry(validator_address)
+                            .and_modify(|(_, microcredits)| *microcredits += bond_amount)
+                            .or_insert((validator_address, bond_amount));
                     }
                     "unbond_public" => {
                         // Get the inputs.
                         let inputs = transition.inputs();
 
-                        // Get the staker address from the inputs.
-                        let first_input = inputs
-                            .get(0)
-                            .ok_or(Error::msg("Failed to get first input"))?;
-                        let staker_address = get_address_from_input(first_input)?;
+                        // Check that the number of inputs is correct.
+                        if inputs.len() != 2 {
+                            bail!("Incorrect number of inputs");
+                        }
 
-                        // Get the amount to unbond from the inputs.
-                        let second_input = inputs
-                            .get(1)
-                            .ok_or(Error::msg("Failed to get second input"))?;
-                        let unbond_amount = get_u64_from_input(second_input)?;
+                        // Get the staker address from the inputs.
+                        let staker_address = get_address_from_input(&inputs[0])?;
+                        // Get the unbond amount from the inputs.
+                        let unbond_amount = get_u64_from_input(&inputs[1])?;
 
                         // Get the bond state for the staker address.
                         let bond_state = bonded_map
@@ -110,25 +104,35 @@ pub fn process_block_transactions<N: Network>(
                             10_000_000_000u64
                         };
 
-                        // get previous unbonding
-                        let prev_unbonding = *unbonding_map.get(&staker_address).unwrap_or(&0u64);
-                        let (prev_validator, prev_bonded) = *bonded_map
+                        // Get the previous bonded amount for the staker address.
+                        let (previous_validator, previous_bonded) = *bonded_map
                             .get(&staker_address)
                             .unwrap_or(&(staker_address, 0u64));
-                        let tmp_new_amount = prev_unbonding + unbond_amount;
 
-                        if prev_unbonding - unbond_amount < threshold {
-                            unbonding_map.insert(staker_address, tmp_new_amount);
+                        // If the new bonded amount is less than the threshold, unbond the entire amount.
+                        // Otherwise, unbond the specified amount.
+                        if previous_bonded - unbond_amount < threshold {
+                            // Update the unbonding mapping.
+                            unbonding_map
+                                .entry(staker_address)
+                                .and_modify(|x| *x += previous_bonded)
+                                .or_insert(previous_bonded);
+                            // Update the bonded mapping.
+                            bonded_map.insert(staker_address, (previous_validator, 0));
+                            // Update the transaction balances.
+                            tx_balances.insert(tx.id(), (staker_address, previous_bonded));
+                        } else {
+                            // Update the unbonding mapping.
+                            unbonding_map
+                                .entry(staker_address)
+                                .and_modify(|x| *x += unbond_amount)
+                                .or_insert(unbond_amount);
+                            // Update the bonded mapping.
                             bonded_map.insert(
                                 staker_address,
-                                (prev_validator, prev_bonded - prev_unbonding),
+                                (previous_validator, previous_bonded - unbond_amount),
                             );
-                            tx_balances.insert(tx.id(), (staker_address, prev_unbonding));
-                        } else {
-                            let new_amount = prev_unbonding + (prev_unbonding - unbond_amount);
-                            let new_bond = prev_bonded - (prev_unbonding - unbond_amount);
-                            unbonding_map.insert(staker_address, new_amount);
-                            bonded_map.insert(staker_address, (prev_validator, new_bond));
+                            // Update the transaction balances.
                             tx_balances.insert(tx.id(), (staker_address, unbond_amount));
                         }
                     }
@@ -136,17 +140,23 @@ pub fn process_block_transactions<N: Network>(
                         // Get the inputs.
                         let inputs = transition.inputs();
 
-                        // Get the address from the inputs.
-                        let first_input = inputs
-                            .first()
-                            .ok_or(Error::msg("Failed to get first input"))?;
-                        let address = get_address_from_input(first_input)?;
+                        // Check that the number of inputs is correct.
+                        if inputs.len() != 1 {
+                            bail!("Incorrect number of inputs");
+                        }
 
-                        // Get the amount from the unbonding mapping.
-                        let amount = unbonding_map.get(&address).unwrap_or(&0u64);
+                        // Get the staker address from the inputs.
+                        let staker_address = get_address_from_input(&inputs[0])?;
+                        // Get the withdrawal address from the withdraw mapping.
+                        let withdrawal_address = withdraw_map
+                            .get(&staker_address)
+                            .ok_or(Error::msg("Failed to get withdrawal address"))?;
+                        // Get the claim amount from the unbonding mapping.
+                        let claim_amount = Ok(unbonding_map.get(&staker_address))
+                            .and_then(|x| x.ok_or(Error::msg("Failed to get claim amount")))?;
 
                         // Update the transaction balances.
-                        tx_balances.insert(tx.id(), (address, *amount));
+                        tx_balances.insert(tx.id(), (*withdrawal_address, *claim_amount));
                     }
                     _ => continue,
                 }
@@ -174,9 +184,7 @@ fn get_u64_from_input<N: Network>(input: &Input<N>) -> Result<u64> {
 }
 
 // A helper function to deserialize the bonded mapping from a JSON string.
-fn deserialize_bonded_mapping<N: Network>(
-    string: &str,
-) -> Result<HashMap<Address<N>, (Address<N>, u64)>> {
+fn deserialize_bonded_mapping<N: Network>(string: &str) -> Result<BondedMapping<N>> {
     // Deserialize the JSON string into a vector of entries.
     let entries: Vec<(Plaintext<N>, Value<N>)> = serde_json::from_str(string)?;
     // Map the entries into a map of addresses to bonded amounts.
@@ -233,6 +241,29 @@ fn deserialize_unbonding_mapping<N: Network>(string: &str) -> Result<HashMap<Add
     mapping.collect()
 }
 
+// A helper function to deserialize the withdraw mapping from a JSON string.
+fn deserialize_withdraw_mapping<N: Network>(
+    string: &str,
+) -> Result<HashMap<Address<N>, Address<N>>> {
+    // Deserialize the JSON string into a vector of entries.
+    let entries: Vec<(Plaintext<N>, Value<N>)> = serde_json::from_str(string)?;
+    // Map the entries into a map of addresses to bonded amounts.
+    let mapping = entries.into_iter().map(|(key, value)| {
+        // Extract the staker address.
+        let staker_address = match key {
+            Plaintext::Literal(Literal::Address(address), _) => address,
+            _ => bail!("Failed to extract staker address"),
+        };
+        // Extract the withdrawal address.
+        let withdrawal_address = match value {
+            Value::Plaintext(Plaintext::Literal(Literal::Address(address), _)) => address,
+            _ => bail!("Failed to extract withdrawal address"),
+        };
+        Ok((staker_address, withdrawal_address))
+    });
+    mapping.collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,6 +310,17 @@ mod tests {
     }
 
     #[test]
+    fn test_read_withdraw_mapping() {
+        // read in json block file from tests
+        let fp = "tests/test_empty_block/withdraw.json";
+        let mut file = File::open(fp).expect("Failed to open file");
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)
+            .expect("Failed to process json");
+        assert!(deserialize_withdraw_mapping::<CurrentNetwork>(&buffer).is_ok());
+    }
+
+    #[test]
     fn test_fill_map() {
         // read in json block file from tests
         let fp = "tests/test_bond_public/block.json";
@@ -293,8 +335,9 @@ mod tests {
         bonded_file
             .read_to_string(&mut bonded_buffer)
             .expect("Failed to process json");
+
         let result_map =
-            process_block_transactions::<CurrentNetwork>(&bonded_buffer, "", &block_buffer)
+            process_block_transactions::<CurrentNetwork>(&bonded_buffer, "", "", &block_buffer)
                 .unwrap();
         assert!(!result_map.is_empty())
     }
@@ -321,9 +364,21 @@ mod tests {
         unbonded_file
             .read_to_string(&mut unbonded_buffer)
             .expect("Failed to process json");
-        let result_map =
-            process_block_transactions::<CurrentNetwork>(&bonded_buffer, &unbonded_buffer, &buffer)
-                .unwrap();
+
+        let withdraw_fp = "tests/test_complex_bond_and_unbond/withdraw.json";
+        let mut withdraw_file = File::open(withdraw_fp).expect("Failed to open file");
+        let mut withdraw_buffer = String::new();
+        withdraw_file
+            .read_to_string(&mut withdraw_buffer)
+            .expect("Failed to process json");
+
+        let result_map = process_block_transactions::<CurrentNetwork>(
+            &bonded_buffer,
+            &unbonded_buffer,
+            &withdraw_buffer,
+            &buffer,
+        )
+        .unwrap();
         assert_eq!(result_map.iter().next().unwrap().1 .1, 15000000u64)
     }
 }
