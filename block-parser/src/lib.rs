@@ -1,10 +1,12 @@
 extern crate core;
 
-pub mod address_bytes;
-pub use address_bytes::*;
+// This module is not functional.
+// It contains prototypes for processing byte-encoded historical data.
+// pub mod bytes;
+// pub use bytes::*;
 
-pub mod decoders;
-pub use decoders::*;
+pub mod json;
+pub use json::*;
 
 use snarkvm::prelude::SizeInBytes;
 use snarkvm::prelude::{
