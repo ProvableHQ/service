@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransactionJSON<N: Network> {
     // The JSON representation of the transaction.
     json: Map<String, Value>,
@@ -44,7 +45,7 @@ impl<N: Network> TransactionJSON<N> {
     // Returns whether or not the transaction is an execution.
     pub fn is_execution(&self) -> bool {
         // Note that this is safe because we check that the field exists in the constructor.
-        self.json["type"].as_str().unwrap() == "execution"
+        self.json["type"].as_str().unwrap() == "execute"
     }
 
     // Returns the ID of the transaction.
@@ -57,7 +58,7 @@ impl<N: Network> TransactionJSON<N> {
 
     // Returns the transitions in the transaction, if it is an execution.
     pub fn transitions(&self) -> Result<Vec<TransitionJSON<N>>> {
-        match self.json["execution"].as_object() {
+        match self.json["transaction"].as_object().unwrap()["execution"].as_object() {
             Some(execution) => match execution.get("transitions") {
                 Some(transitions) => match transitions.as_array() {
                     Some(transitions) => transitions

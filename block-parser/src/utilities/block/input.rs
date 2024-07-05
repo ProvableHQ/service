@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputJSON<N: Network> {
     // The JSON representation of the input.
     json: Map<String, Value>,

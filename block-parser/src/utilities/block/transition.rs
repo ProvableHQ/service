@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransitionJSON<N: Network> {
     // The JSON representation of the transition.
     json: Map<String, Value>,

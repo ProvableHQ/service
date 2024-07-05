@@ -8,11 +8,11 @@ extern crate core;
 pub mod utilities;
 pub use utilities::*;
 
-use snarkvm::prelude::SizeInBytes;
 use snarkvm::prelude::{
     Address, Block, FromBytes, Identifier, Input, Literal, Network, Plaintext, ProgramID,
     Transactions, Value,
 };
+use snarkvm::prelude::{SizeInBytes, U64};
 
 use anyhow::{bail, ensure, Error, Result};
 use std::cell::OnceCell;
@@ -34,7 +34,6 @@ pub fn process_block_transactions<N: Network>(
     withdraw: &str,
     block: String,
 ) -> Result<TransactionAmounts<N>> {
-    let timer = std::time::Instant::now();
     // Decode the bonded mapping from little-endian archive.
     let mut bonded_map = decode_bonded_mapping::<N>(bonded)?;
     // Decode the unbonding mapping from little-endian archive.
@@ -42,23 +41,18 @@ pub fn process_block_transactions<N: Network>(
     // Decode the withdraw mapping from little-endian archive.
     let withdraw_map = decode_withdraw_mapping::<N>(withdraw)?;
 
-    // Print the time taken to decode the mappings.
-    println!("Time to decode mappings was: {:?}", timer.elapsed());
-
     // Initialize the transaction amounts.
     let mut tx_balances: TransactionAmounts<N> = HashMap::new();
 
     // Decode the block.
     let block = decode_block::<N>(block)?;
 
-    // Print the time taken to decode the block.
-    println!("Time to decode block was: {:?}", timer.elapsed());
-
     // Get the accepted executions in the block.
     let accepted_executions = block
         .transactions()?
         .into_iter()
-        .filter(|tx| tx.is_accepted() && tx.is_execution());
+        .filter(|tx| tx.is_accepted() && tx.is_execution())
+        .collect::<Vec<_>>();
 
     // Iterate over transactions - check internal state, update, continue
     for tx in accepted_executions {
@@ -198,7 +192,7 @@ fn get_address_from_input<N: Network>(input: &InputJSON<N>) -> AddressString<N> 
 
 // A helper function to get an u64 from an input.
 fn get_u64_from_input<N: Network>(input: &InputJSON<N>) -> Result<u64> {
-    input.value().parse().map_err(Into::into)
+    Ok(*U64::<N>::from_str(input.value())?)
 }
 
 #[cfg(test)]
