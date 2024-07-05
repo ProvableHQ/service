@@ -12,13 +12,13 @@
       "network": 2,
       "round": 57204,
       "height": 28535,
-      "cumulative_weight": 4587902,
+      "cumulative_weight": 618638040803515,
       "cumulative_proof_target": 0,
-      "coinbase_target": 1182,
-      "proof_target": 296,
-      "last_coinbase_target": 1182,
-      "last_coinbase_timestamp": 1718325473,
-      "timestamp": 1718325473
+      "coinbase_target": 7106176505,
+      "proof_target": 1776544127,
+      "last_coinbase_target": 7082078247,
+      "last_coinbase_timestamp": 1720207826,
+      "timestamp": 1720207829
     }
   },
   "authority": {

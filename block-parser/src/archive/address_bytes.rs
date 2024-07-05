@@ -5,8 +5,8 @@ use std::hash::Hash;
 
 #[derive(Clone)]
 pub struct AddressBytes<N: Network> {
-    // The little-endian bytes of the address.
-    // This is approximately 32 bytes, which implies that clones are not prohibitively expensive.
+    // The little-endian archive of the address.
+    // This is approximately 32 archive, which implies that clones are not prohibitively expensive.
     // For further performance improvements, consider using `smallvec`.
     bytes_le: Vec<u8>,
     address: OnceCell<Option<Address<N>>>,
