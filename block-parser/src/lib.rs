@@ -1,10 +1,5 @@
 extern crate core;
 
-// This module is not functional.
-// It contains prototypes for processing byte-encoded historical data.
-// pub mod archive;
-// pub use archive::*;
-
 pub mod block_json;
 pub use block_json::*;
 
