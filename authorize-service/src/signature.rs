@@ -20,7 +20,7 @@ use super::*;
 ///
 /// @param {string} private_key Private key to sign the message with
 /// @param {Uint8Array} message Byte representation of the message to sign
-/// @returns {SignatureResponse} Signed message in little endian bytes
+/// @returns {SignatureResponse} Signed message in little endian archive
 pub fn sign<N: Network>(request: SignRequest<N>) -> Result<SignResponse> {
     let signature = Signature::<N>::sign_bytes(
         &request.private_key,
