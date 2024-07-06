@@ -33,11 +33,7 @@ impl InputJSON {
             Some(value) => value.to_string(),
             None => bail!("Invalid input value"),
         };
-        Ok(Self {
-            type_,
-            id,
-            value,
-        })
+        Ok(Self { type_, id, value })
     }
 
     // Returns the type of the input.

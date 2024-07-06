@@ -1,4 +1,3 @@
-
 pub mod input;
 pub use input::*;
 
@@ -8,8 +7,8 @@ pub use transaction::*;
 pub mod transition;
 pub use transition::*;
 
-use anyhow::{Result, bail};
-use serde_json::{Value, Map};
+use anyhow::{bail, Result};
+use serde_json::{Map, Value};
 use std::str::FromStr;
 
 pub struct BlockJSON {

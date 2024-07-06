@@ -1,13 +1,12 @@
 use super::*;
 
+use nom::character::complete::digit1;
+use nom::sequence::{tuple};
 use nom::{
     bytes::complete::tag,
     character::complete::{alphanumeric1, multispace0},
-    sequence::{delimited, preceded, separated_pair},
     IResult,
 };
-use nom::character::complete::digit1;
-use nom::sequence::{pair, tuple};
 
 // Decodes the block from a JSON string into a sequence of `credits.aleo` operations and the block height.
 // Note that this method checks that the block is valid at the expense of performance.
@@ -24,7 +23,10 @@ pub fn decode_block<N: Network>(string: &str) -> Result<(Vec<CreditsOperations>,
         if transaction.is_accepted() && transaction.is_execute() {
             // Process the transitions in the transaction.
             for transition in transaction.transitions() {
-                match (transition.program_id().to_string().as_str(), transition.function_name().to_string().as_str()) {
+                match (
+                    transition.program_id().to_string().as_str(),
+                    transition.function_name().to_string().as_str(),
+                ) {
                     ("credits.aleo", "bond_public") => {
                         // Get the transition ID.
                         let id = transition.id().to_string();
@@ -33,20 +35,33 @@ pub fn decode_block<N: Network>(string: &str) -> Result<(Vec<CreditsOperations>,
                         // Check that there are 3 inputs.
                         ensure!(inputs.len() == 3, "Expected 3 inputs");
                         // Get the validator address, withdrawal address, and amount from the inputs.
-                        let validator = match inputs.get(0).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::Address(validator), _))) => validator.to_string(),
+                        let validator = match inputs.first().unwrap() {
+                            Input::Public(
+                                _,
+                                Some(Plaintext::Literal(Literal::Address(validator), _)),
+                            ) => validator.to_string(),
                             _ => bail!("Expected an address"),
                         };
                         let withdrawal = match inputs.get(1).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::Address(withdrawal), _))) => withdrawal.to_string(),
+                            Input::Public(
+                                _,
+                                Some(Plaintext::Literal(Literal::Address(withdrawal), _)),
+                            ) => withdrawal.to_string(),
                             _ => bail!("Expected an address"),
                         };
                         let amount = match inputs.get(2).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::U64(amount), _))) => **amount,
+                            Input::Public(_, Some(Plaintext::Literal(Literal::U64(amount), _))) => {
+                                **amount
+                            }
                             _ => bail!("Expected an integer"),
                         };
                         // Add the `bond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::BondPublic { id, validator, withdrawal, amount });
+                        credits_transactions.push(CreditsOperations::BondPublic {
+                            id,
+                            validator,
+                            withdrawal,
+                            amount,
+                        });
                     }
                     ("credits.aleo", "claim_unbond_public") => {
                         // Get the transition ID.
@@ -56,12 +71,16 @@ pub fn decode_block<N: Network>(string: &str) -> Result<(Vec<CreditsOperations>,
                         // Check that there is 1 input.
                         ensure!(inputs.len() == 1, "Expected 1 input");
                         // Get the staker address from the inputs.
-                        let staker = match inputs.get(0).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::Address(staker), _))) => staker.to_string(),
+                        let staker = match inputs.first().unwrap() {
+                            Input::Public(
+                                _,
+                                Some(Plaintext::Literal(Literal::Address(staker), _)),
+                            ) => staker.to_string(),
                             _ => bail!("Expected an address"),
                         };
                         // Add the `claim_unbond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::ClaimUnbondPublic { id, staker });
+                        credits_transactions
+                            .push(CreditsOperations::ClaimUnbondPublic { id, staker });
                     }
                     ("credits.aleo", "unbond_public") => {
                         // Get the transition ID.
@@ -71,17 +90,25 @@ pub fn decode_block<N: Network>(string: &str) -> Result<(Vec<CreditsOperations>,
                         // Check that there are 2 inputs.
                         ensure!(inputs.len() == 2, "Expected 2 inputs");
                         // Get the staker address and amount from the inputs.
-                        let staker = match inputs.get(0).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::Address(staker), _))) => staker.to_string(),
+                        let staker = match inputs.first().unwrap() {
+                            Input::Public(
+                                _,
+                                Some(Plaintext::Literal(Literal::Address(staker), _)),
+                            ) => staker.to_string(),
                             _ => bail!("Expected an address"),
                         };
                         let amount = match inputs.get(1).unwrap() {
-                            Input::Public(_, Some(Plaintext::Literal(Literal::U64(amount), _))) => **amount,
+                            Input::Public(_, Some(Plaintext::Literal(Literal::U64(amount), _))) => {
+                                **amount
+                            }
                             _ => bail!("Expected an integer"),
                         };
                         // Add the `unbond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::UnbondPublic { id, staker, amount });
-
+                        credits_transactions.push(CreditsOperations::UnbondPublic {
+                            id,
+                            staker,
+                            amount,
+                        });
                     }
                     _ => {} // Do nothing.
                 }
@@ -115,11 +142,16 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there are 3 inputs.
                         ensure!(inputs.len() == 3, "Expected 3 inputs");
                         // Get the validator address, withdrawal address, and amount from the inputs.
-                        let validator = inputs.get(0).unwrap().value().to_string();
+                        let validator = inputs.first().unwrap().value().to_string();
                         let withdrawal = inputs.get(1).unwrap().value().to_string();
                         let amount = *U64::<N>::from_str(inputs.get(2).unwrap().value())?;
                         // Add the `bond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::BondPublic { id, validator, withdrawal, amount });
+                        credits_transactions.push(CreditsOperations::BondPublic {
+                            id,
+                            validator,
+                            withdrawal,
+                            amount,
+                        });
                     }
                     ("credits.aleo", "claim_unbond_public") => {
                         // Get the transition ID.
@@ -129,9 +161,10 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there is 1 input.
                         ensure!(inputs.len() == 1, "Expected 1 input");
                         // Get the staker address from the inputs.
-                        let staker = inputs.get(0).unwrap().value().to_string();
+                        let staker = inputs.first().unwrap().value().to_string();
                         // Add the `claim_unbond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::ClaimUnbondPublic { id, staker });
+                        credits_transactions
+                            .push(CreditsOperations::ClaimUnbondPublic { id, staker });
                     }
                     ("credits.aleo", "unbond_public") => {
                         // Get the transition ID.
@@ -141,10 +174,14 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there are 2 inputs.
                         ensure!(inputs.len() == 2, "Expected 2 inputs");
                         // Get the staker address and amount from the inputs.
-                        let staker = inputs.get(0).unwrap().value().to_string();
+                        let staker = inputs.first().unwrap().value().to_string();
                         let amount = *U64::<N>::from_str(inputs.get(1).unwrap().value())?;
                         // Add the `unbond_public` operation to the credits transactions.
-                        credits_transactions.push(CreditsOperations::UnbondPublic { id, staker, amount });
+                        credits_transactions.push(CreditsOperations::UnbondPublic {
+                            id,
+                            staker,
+                            amount,
+                        });
                     }
                     _ => {} // Do nothing.
                 }
@@ -183,7 +220,7 @@ pub fn decode_bonded_mapping<N: Network>(string: &str) -> Result<BondedMapping> 
                     _ => bail!("Expected an integer"),
                 };
                 (validator.to_string(), microcredits)
-            },
+            }
             _ => bail!("Expected a struct"),
         };
         bonded.insert(address, (validator, microcredits));
@@ -228,11 +265,18 @@ pub fn decode_bonded_mapping_unchecked(string: &str) -> Result<BondedMapping> {
             // `parse_data` is a helper function to extract the address and amount from the string.
             fn parse_data(input: &str) -> IResult<&str, (&str, &str)> {
                 // Parse "{\n validator: ".
-                let (input, _) = tuple((tag("{"), multispace0, tag("validator:"), multispace0))(input)?;
+                let (input, _) =
+                    tuple((tag("{"), multispace0, tag("validator:"), multispace0))(input)?;
                 // Parse the validator address.
                 let (input, validator) = alphanumeric1(input)?;
                 // Parse ",\n microcredits: ".
-                let (input, _) = tuple((multispace0, tag(","), multispace0, tag("microcredits:"), multispace0))(input)?;
+                let (input, _) = tuple((
+                    multispace0,
+                    tag(","),
+                    multispace0,
+                    tag("microcredits:"),
+                    multispace0,
+                ))(input)?;
                 // Parse the microcredits amount.
                 let (input, microcredits) = digit1(input)?;
                 // Parse "u64\n}".
@@ -240,7 +284,9 @@ pub fn decode_bonded_mapping_unchecked(string: &str) -> Result<BondedMapping> {
                 Ok((input, (validator, microcredits)))
             }
             let (address, amount) = match parse_data(&second) {
-                Ok((_, (validator, microcredits))) => (validator.to_string(), u64::from_str(microcredits)?),
+                Ok((_, (validator, microcredits))) => {
+                    (validator.to_string(), u64::from_str(microcredits)?)
+                }
                 Err(_) => bail!("Failed to parse data"),
             };
             (address, amount)
@@ -279,7 +325,7 @@ pub fn decode_unbonding_mapping<N: Network>(string: &str) -> Result<UnbondedMapp
                     _ => bail!("Expected an integer"),
                 };
                 (amount, height)
-            },
+            }
             _ => bail!("Expected a struct"),
         };
         unbonded.insert(address, (amount, height));
@@ -324,17 +370,24 @@ pub fn decode_unbonding_mapping_unchecked(string: &str) -> Result<UnbondedMappin
             // `parse_data` is a helper function to extract the amount and height from the string.
             fn parse_data(input: &str) -> IResult<&str, (&str, &str)> {
                 // Parse "{\n microcredits: ".
-                let (input, _) = tuple((tag("{"), multispace0, tag("microcredits:"), multispace0))(input)?;
+                let (input, _) =
+                    tuple((tag("{"), multispace0, tag("microcredits:"), multispace0))(input)?;
                 // Parse the microcredits amount.
                 let (input, microcredits) = digit1(input)?;
                 // Parse "u64,\n height: ".
-                let (input, _) = tuple((tag("u64"), multispace0, tag(","), multispace0, tag("height:"), multispace0))(input)?;
+                let (input, _) = tuple((
+                    tag("u64"),
+                    multispace0,
+                    tag(","),
+                    multispace0,
+                    tag("height:"),
+                    multispace0,
+                ))(input)?;
                 // Parse the height.
                 let (input, height) = digit1(input)?;
                 // Parse "u32\n}".
                 let (input, _) = tuple((tag("u32"), multispace0, tag("}")))(input)?;
                 Ok((input, (microcredits, height)))
-
             }
             let (amount, height) = match parse_data(&second) {
                 Ok((_, (amount, duration))) => (amount.parse::<u64>()?, duration.parse::<u32>()?),
@@ -364,7 +417,9 @@ pub fn decode_withdraw_mapping<N: Network>(string: &str) -> Result<WithdrawMappi
         };
         // Get the withdrawal address from the value.
         let withdrawal = match value {
-            Value::Plaintext(Plaintext::Literal(Literal::Address(address), _)) => address.to_string(),
+            Value::Plaintext(Plaintext::Literal(Literal::Address(address), _)) => {
+                address.to_string()
+            }
             _ => bail!("Expected an address"),
         };
         withdraw.insert(staker, withdrawal);
@@ -417,8 +472,10 @@ mod tests {
     #[test]
     fn test_decode_block() {
         let block_json = include_str!("../tests/test_bond_public/block.json");
-        let (operations_checked, height_checked) = decode_block::<CurrentNetwork>(block_json).unwrap();
-        let (operations_unchecked, height_unchecked) = decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
+        let (operations_checked, height_checked) =
+            decode_block::<CurrentNetwork>(block_json).unwrap();
+        let (operations_unchecked, height_unchecked) =
+            decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
         assert_eq!(operations_checked, operations_unchecked);
         assert_eq!(height_checked, height_unchecked);
 
@@ -435,8 +492,10 @@ mod tests {
         // assert_eq!(operations_checked, operations_unchecked);
 
         let block_json = include_str!("../tests/test_empty_block/block.json");
-        let (operations_checked, height_checked) = decode_block::<CurrentNetwork>(block_json).unwrap();
-        let (operations_unchecked, height_unchecked) = decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
+        let (operations_checked, height_checked) =
+            decode_block::<CurrentNetwork>(block_json).unwrap();
+        let (operations_unchecked, height_unchecked) =
+            decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
         assert_eq!(operations_checked, operations_unchecked);
         assert_eq!(height_checked, height_unchecked);
         assert_eq!(operations_checked.len(), 0);

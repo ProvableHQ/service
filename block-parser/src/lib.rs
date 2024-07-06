@@ -10,18 +10,15 @@ pub mod credits_operations;
 pub use credits_operations::*;
 
 use snarkvm::prelude::{
-    Address, Block, FromBytes, Identifier, Input, Literal, Network, Plaintext, ProgramID,
-    Transactions, Value,
+    Block, Identifier, Input, Literal, Network, Plaintext,
+    Value,
 };
-use snarkvm::prelude::{SizeInBytes, U64};
+use snarkvm::prelude::{U64};
 
 use anyhow::{bail, ensure, Error, Result};
-use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug};
 use std::hash::Hash;
-use std::io::{Read, Result as IoResult};
-use std::marker::PhantomData;
 use std::str::FromStr;
 
 pub type BondedMapping = HashMap<String, (String, u64)>;
@@ -48,7 +45,12 @@ pub fn process_block_transactions(
     // Process the transactions and calculate the associated amounts.
     for transaction in transactions {
         match transaction {
-            CreditsOperations::BondPublic { id: _, validator, withdrawal: _, amount } => {
+            CreditsOperations::BondPublic {
+                id: _,
+                validator,
+                withdrawal: _,
+                amount,
+            } => {
                 // Update the bonded mapping.
                 bonded_map
                     .entry(validator.clone())
