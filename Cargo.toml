@@ -1,0 +1,37 @@
+[workspace]
+resolver = "2"
+
+members = [
+	"authorize-service",
+	"execute-service",
+	"client",
+	"block-parser",
+]
+
+[workspace.dependencies]
+snarkvm = { git = "https://github.com/AleoNet/snarkVM.git", rev = "d170a9f" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+incremental = true
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = "thin"
+incremental = true
+debug-assertions = false
+
+[profile.dev]
+opt-level = 3
+lto = "thin"
+incremental = true
+
+[profile.test]
+opt-level = 3
+lto = "thin"
+incremental = true
+debug = true
+debug-assertions = true

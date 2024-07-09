@@ -30,8 +30,7 @@ version = "1.8.0"
 version = "1.0.190"
 
 [dependencies.snarkvm]
-git = "https://github.com/AleoHQ/snarkVM.git"
-rev = "140ff26"
+workspace = true
 
 [dependencies.structopt]
 version = "0.3.26"
@@ -54,28 +53,3 @@ version = "0.3.6"
 
 [dev-dependencies.criterion]
 version = "0.5.1"
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-incremental = true
-
-[profile.bench]
-opt-level = 3
-debug = false
-rpath = false
-lto = "thin"
-incremental = true
-debug-assertions = false
-
-[profile.dev]
-opt-level = 3
-lto = "thin"
-incremental = true
-
-[profile.test]
-opt-level = 3
-lto = "thin"
-incremental = true
-debug = true
-debug-assertions = true

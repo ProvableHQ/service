@@ -35,10 +35,10 @@ pub use routes::*;
 pub mod signature;
 pub use signature::*;
 
-use snarkvm::circuit::{Aleo, AleoTestnetV0, AleoV0};
+use snarkvm::circuit::{Aleo, AleoCanaryV0, AleoTestnetV0, AleoV0};
 use snarkvm::prelude::{
-    Address, Authorization, Deserialize, Environment, Field, MainnetV0, Network, PrivateKey,
-    Process, Serialize, Signature, TestnetV0, ToBytes,
+    Address, Authorization, CanaryV0, Deserialize, Environment, Field, MainnetV0, Network,
+    PrivateKey, Process, Serialize, Signature, TestnetV0, ToBytes,
 };
 
 use anyhow::Result;

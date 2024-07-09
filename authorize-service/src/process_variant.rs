@@ -19,6 +19,7 @@ use super::*;
 pub enum ProcessVariant {
     MainnetV0(Process<MainnetV0>),
     TestnetV0(Process<TestnetV0>),
+    CanaryV0(Process<CanaryV0>),
 }
 
 impl ProcessVariant {
@@ -29,6 +30,9 @@ impl ProcessVariant {
             }
             ProcessVariant::TestnetV0(process) => {
                 Self::handle_authorize::<AleoTestnetV0, TestnetV0>(process, bytes)
+            }
+            ProcessVariant::CanaryV0(process) => {
+                Self::handle_authorize::<AleoCanaryV0, CanaryV0>(process, bytes)
             }
         }
     }
