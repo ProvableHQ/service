@@ -18,7 +18,6 @@ use execute_service::*;
 
 use snarkvm::prelude::{CanaryV0, MainnetV0, Network, TestnetV0};
 use structopt::StructOpt;
-use warp::reply::with::headers;
 use warp::Filter;
 
 #[derive(StructOpt, Debug)]
