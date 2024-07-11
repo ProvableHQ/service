@@ -41,3 +41,13 @@ pub fn execute_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = 
             Ok(response)
         })
 }
+
+// GET /health
+pub fn health_route(
+) -> impl Filter<Extract = (warp::reply::WithStatus<&'static str>,), Error = warp::Rejection> + Clone
+{
+    warp::get()
+        .and(warp::path("health"))
+        .and(warp::path::end())
+        .map(|| warp::reply::with_status("Execute Service is up", warp::http::StatusCode::OK))
+}

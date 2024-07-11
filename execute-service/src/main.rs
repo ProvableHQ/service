@@ -18,6 +18,7 @@ use execute_service::*;
 
 use snarkvm::prelude::{CanaryV0, MainnetV0, Network, TestnetV0};
 use structopt::StructOpt;
+use warp::reply::with::headers;
 use warp::Filter;
 
 #[derive(StructOpt, Debug)]
@@ -31,9 +32,13 @@ struct Opt {
 async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
-    let routes = execute_route::<N>().with(warp::trace(
-        |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
-    ));
+    let routes = execute_route::<N>()
+        .with(warp::trace(
+            |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
+        ))
+        .or(health_route().with(warp::trace(
+            |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
+        )));
 
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
