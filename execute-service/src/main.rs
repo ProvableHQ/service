@@ -39,7 +39,7 @@ async fn run<N: Network>(port: u16) {
             |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
         )));
 
-    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }
 
 #[tokio::main]
