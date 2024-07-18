@@ -7,7 +7,7 @@ pub struct InputJSON {
     // The ID of the input.
     id: String,
     // The value of the input.
-    value: String,
+    value: Option<String>,
 }
 
 impl InputJSON {
@@ -29,9 +29,13 @@ impl InputJSON {
             None => bail!("Invalid input ID"),
         };
         // Get the value of the input.
-        let value = match json["value"].as_str() {
-            Some(value) => value.to_string(),
-            None => bail!("Invalid input value"),
+        let value = match json
+            .get("value")
+            .or_else(|| json.get("tag"))
+            .and_then(|v| v.as_str())
+        {
+            Some(value) => Some(value.to_string()),
+            None => None,
         };
         Ok(Self { type_, id, value })
     }
@@ -47,7 +51,7 @@ impl InputJSON {
     }
 
     // Returns the value of the input.
-    pub fn value(&self) -> &str {
+    pub fn value(&self) -> &Option<String> {
         &self.value
     }
 }

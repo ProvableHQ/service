@@ -1,7 +1,7 @@
 use super::*;
 
 use nom::character::complete::digit1;
-use nom::sequence::{tuple};
+use nom::sequence::tuple;
 use nom::{
     bytes::complete::tag,
     character::complete::{alphanumeric1, multispace0},
@@ -142,9 +142,13 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there are 3 inputs.
                         ensure!(inputs.len() == 3, "Expected 3 inputs");
                         // Get the validator address, withdrawal address, and amount from the inputs.
-                        let validator = inputs.first().unwrap().value().to_string();
-                        let withdrawal = inputs.get(1).unwrap().value().to_string();
-                        let amount = *U64::<N>::from_str(inputs.get(2).unwrap().value())?;
+                        let validator = inputs.first().unwrap().value().to_owned().unwrap();
+                        let withdrawal = inputs.get(1).unwrap().value().to_owned().unwrap();
+                        let inputs_value = inputs.get(2).unwrap().value();
+                        let amount = match inputs_value {
+                            Some(v) => *U64::<N>::from_str(&v)?,
+                            None => bail!("Invalid JSON object"),
+                        };
                         // Add the `bond_public` operation to the credits transactions.
                         credits_transactions.push(CreditsOperations::BondPublic {
                             id,
@@ -161,7 +165,10 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there is 1 input.
                         ensure!(inputs.len() == 1, "Expected 1 input");
                         // Get the staker address from the inputs.
-                        let staker = inputs.first().unwrap().value().to_string();
+                        let staker = match inputs.first().unwrap().value() {
+                            Some(v) => v.to_string(),
+                            None => bail!("Invalid response for staker address"),
+                        };
                         // Add the `claim_unbond_public` operation to the credits transactions.
                         credits_transactions
                             .push(CreditsOperations::ClaimUnbondPublic { id, staker });
@@ -174,8 +181,15 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         // Check that there are 2 inputs.
                         ensure!(inputs.len() == 2, "Expected 2 inputs");
                         // Get the staker address and amount from the inputs.
-                        let staker = inputs.first().unwrap().value().to_string();
-                        let amount = *U64::<N>::from_str(inputs.get(1).unwrap().value())?;
+                        let staker = match inputs.first().unwrap().value() {
+                            Some(v) => v.to_string(),
+                            None => bail!("Invalid response for staker address"),
+                        };
+                        let inputs_value = inputs.get(1).unwrap().value();
+                        let amount = match inputs_value {
+                            Some(v) => *U64::<N>::from_str(&v)?,
+                            None => bail!("Invalid JSON object"),
+                        };
                         // Add the `unbond_public` operation to the credits transactions.
                         credits_transactions.push(CreditsOperations::UnbondPublic {
                             id,

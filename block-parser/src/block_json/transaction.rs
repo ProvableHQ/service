@@ -31,12 +31,15 @@ impl TransactionJSON {
             None => bail!("Invalid transaction type"),
         };
         // Get the transitions in the transaction.
-        let transitions = match json["transaction"]["execution"]["transitions"].as_array() {
-            Some(transitions) => transitions
-                .iter()
-                .map(|transition| TransitionJSON::new(transition.clone()))
-                .collect::<Result<Vec<_>>>()?,
-            None => bail!("Invalid transitions"),
+        let transitions = match json["transaction"]["type"].as_str() {
+            Some("execute") => match json["transaction"]["execution"]["transitions"].as_array() {
+                Some(transitions) => transitions
+                    .iter()
+                    .map(|transition| TransitionJSON::new(transition.clone()))
+                    .collect::<Result<Vec<_>>>()?,
+                None => bail!("Invalid transitions"),
+            },
+            _ => Vec::new(),
         };
         Ok(Self {
             json,
