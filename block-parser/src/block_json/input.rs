@@ -31,7 +31,6 @@ impl InputJSON {
         // Get the value of the input.
         let value = match json
             .get("value")
-            .or_else(|| json.get("tag"))
             .and_then(|v| v.as_str())
         {
             Some(value) => Some(value.to_string()),
