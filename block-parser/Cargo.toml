@@ -7,6 +7,9 @@ edition = "2021"
 name = "block_parser"
 path = "src/lib.rs"
 
+[dependencies.nom]
+version = "7.1.3"
+
 [dependencies.serde_json]
 version = "1.0.117"
 

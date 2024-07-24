@@ -1,5 +1,5 @@
 {
-  "block_hash": "ab1hszy3my7t4s9x735g95sxqrw04ucxlh8pcgvds3uxc9xsuplevpq5qe3my",
+  "block_hash": "ab1ex9nuvlpl4c8jk7g3gvy4ehjd0s8he4s6gs8zuee9fphjkwr6q8qqwzqqc",
   "previous_hash": "ab1x92895dsm2t0jkfzcdje828tp7nunl539u0d9sfqvm8rmgrfw5gs0cx7z7",
   "header": {
     "previous_state_root": "sr1a0dth0pxyncp2cferyckn8dshk7app5urf575qr7ql2ktaqu5gpsj2r5wg",
@@ -9,16 +9,16 @@
     "solutions_root": "0field",
     "subdag_root": "605417178863750872653241045211453188126247961199479547538143268499549829684field",
     "metadata": {
-      "network": 1,
+      "network": 2,
       "round": 854356,
       "height": 427005,
-      "cumulative_weight": 207257079442,
+      "cumulative_weight": 618638040803515,
       "cumulative_proof_target": 0,
-      "coinbase_target": 2699409,
-      "proof_target": 674853,
-      "last_coinbase_target": 2690705,
-      "last_coinbase_timestamp": 1718313836,
-      "timestamp": 1718313840
+      "coinbase_target": 7106176505,
+      "proof_target": 1776544127,
+      "last_coinbase_target": 7082078247,
+      "last_coinbase_timestamp": 1720207826,
+      "timestamp": 1720207829
     }
   },
   "authority": {
@@ -279,7 +279,7 @@
               "committee_id": "6351646736751928112173396158056319144013084982752159811072111702069343975213field",
               "transmission_ids": [
                 "at1ejtdtrw7jp82sr0e7x3w6ktetpl6zuzqpsv4p85399y6af63acgs5wt4rp",
-                "at1q5jnuau3vy3r6m0c7ktqlefhjsvuhg75zuwm6sghv4xyp2eyuyzqtarpcs"
+                "at1zg040c4j5ec2hlgupp5hfw9juamx4hsresawexedqtrajd964spqhuvmwl"
               ],
               "previous_certificate_ids": [
                 "4099260321017458199476146843790157164090890242520419697217363997539188084066field",
@@ -420,17 +420,22 @@
       "index": 1,
       "transaction": {
         "type": "execute",
-        "id": "at1q5jnuau3vy3r6m0c7ktqlefhjsvuhg75zuwm6sghv4xyp2eyuyzqtarpcs",
+        "id": "at1zg040c4j5ec2hlgupp5hfw9juamx4hsresawexedqtrajd964spqhuvmwl",
         "execution": {
           "transitions": [
             {
-              "id": "au1k6luj9k0sae4q6qp82958rr6f9lclzvjx2ek4krr9tfv27qg0qxqptaau6",
+              "id": "au1gedkey8yvd4csh7e44gy94pwj2qdxv27fhnk7y6e6xnxa67v8gxq69j2tz",
               "program": "credits.aleo",
               "function": "bond_public",
               "inputs": [
                 {
                   "type": "public",
                   "id": "2868901785241866086424141678842939413409003440836646844804072949717167593753field",
+                  "value": "aleo1sln3ylyratwjext23gr5a94zhce77kfwz6kap49gakl90l9vnvqstf0tmr"
+                },
+                {
+                  "type": "public",
+                  "id": "2868901785241866086424141678842939413409003440836646844804072949717167593757field",
                   "value": "aleo1sln3ylyratwjext23gr5a94zhce77kfwz6kap49gakl90l9vnvqstf0tmr"
                 },
                 {

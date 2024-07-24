@@ -139,7 +139,7 @@ async fn main() -> Result<()> {
         .send()
         .await?;
 
-    // If the request was successful, deserialize the response bytes as a `Transaction`.
+    // If the request was successful, deserialize the response archive as a `Transaction`.
     let transaction = match response.status().is_success() {
         true => {
             let bytes = response.bytes().await?;

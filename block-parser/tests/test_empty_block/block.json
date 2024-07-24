@@ -1,5 +1,5 @@
 {
-  "block_hash": "ab18y7zq2sf4jmxy7xw9eej0nt6t2vxzrtsqmsa20d7hfq9ey4gyurqenseh8",
+  "block_hash": "ab1l06t5uldtucj6uud605aa3vuf3yyhz3he7ucyxh88e8ttteg3vys77jw3f",
   "previous_hash": "ab1kys97a8z8tf69rwadxefvnk64rznjm4xycm90vl4css2r85yjsyq49lhff",
   "header": {
     "previous_state_root": "sr1m05uvmf5j377jupl72uzzwv0qyn4u8udrael7mu9ev2zzgy8dyzqqgt23s",
@@ -12,13 +12,13 @@
       "network": 2,
       "round": 4,
       "height": 1,
-      "cumulative_weight": 0,
+      "cumulative_weight": 618638040803515,
       "cumulative_proof_target": 0,
-      "coinbase_target": 1023,
-      "proof_target": 256,
-      "last_coinbase_target": 1023,
-      "last_coinbase_timestamp": 1715776496,
-      "timestamp": 1718230980
+      "coinbase_target": 7106176505,
+      "proof_target": 1776544127,
+      "last_coinbase_target": 7082078247,
+      "last_coinbase_timestamp": 1720207826,
+      "timestamp": 1720207829
     }
   },
   "authority": {
