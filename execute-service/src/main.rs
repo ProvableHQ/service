@@ -31,11 +31,15 @@ struct Opt {
 async fn run<N: Network>(port: u16) {
     pretty_env_logger::init();
 
-    let routes = execute_route::<N>().with(warp::trace(
-        |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
-    ));
+    let routes = execute_route::<N>()
+        .with(warp::trace(
+            |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
+        ))
+        .or(health_route().with(warp::trace(
+            |info| tracing::debug_span!("Debugging headers", headers = ?info.request_headers()),
+        )));
 
-    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }
 
 #[tokio::main]
