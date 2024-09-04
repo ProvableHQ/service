@@ -9,15 +9,12 @@ pub use decoders::*;
 pub mod credits_operations;
 pub use credits_operations::*;
 
-use snarkvm::prelude::{
-    Block, Identifier, Input, Literal, Network, Plaintext,
-    Value,
-};
-use snarkvm::prelude::{U64};
+use snarkvm::prelude::U64;
+use snarkvm::prelude::{Block, Identifier, Input, Literal, Network, Plaintext, Value};
 
 use anyhow::{bail, ensure, Error, Result};
 use std::collections::HashMap;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;
 

@@ -29,10 +29,7 @@ impl InputJSON {
             None => bail!("Invalid input ID"),
         };
         // Get the value of the input.
-        let value = match json
-            .get("value")
-            .and_then(|v| v.as_str())
-        {
+        let value = match json.get("value").and_then(|v| v.as_str()) {
             Some(value) => Some(value.to_string()),
             None => None,
         };
