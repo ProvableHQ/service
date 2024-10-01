@@ -1,3 +1,5 @@
+use output::OutputJSON;
+
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -10,6 +12,8 @@ pub struct TransitionJSON {
     function: String,
     // The inputs of the transition.
     inputs: Vec<InputJSON>,
+    // The outputs of the transition.
+    outputs: Vec<OutputJSON>,
 }
 
 impl TransitionJSON {
@@ -43,11 +47,20 @@ impl TransitionJSON {
                 .collect::<Result<Vec<_>>>()?,
             None => bail!("Invalid inputs"),
         };
+        // Get the outputs of the transition.
+        let outputs = match json["outputs"].as_array() {
+            Some(outputs) => outputs
+                .iter()
+                .map(|output| OutputJSON::new(output.clone()))
+                .collect::<Result<Vec<_>>>()?,
+            None => bail!("Invalid outputs"),
+        };
         Ok(Self {
             id,
             program,
             function,
             inputs,
+            outputs,
         })
     }
 
@@ -69,5 +82,10 @@ impl TransitionJSON {
     // Returns the inputs of the transition.
     pub fn inputs(&self) -> &Vec<InputJSON> {
         &self.inputs
+    }
+
+    // Returns the outputs of the transition.
+    pub fn outputs(&self) -> &Vec<OutputJSON> {
+        &self.outputs
     }
 }
