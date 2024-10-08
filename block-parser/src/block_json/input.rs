@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use super::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InputJSON {
     // The type of the input.
     type_: String,

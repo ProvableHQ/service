@@ -19,6 +19,8 @@ pub struct BlockJSON {
     height: u32,
     // The transactions in the block.
     transactions: Vec<TransactionJSON>,
+    // The block timestamp.
+    timestamp: u64,
 }
 
 impl BlockJSON {
@@ -30,8 +32,32 @@ impl BlockJSON {
             Value::Object(json) => json,
             _ => bail!("Invalid JSON object"),
         };
+        Self::try_from(json)
+    }
+
+    // Returns the block height.
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    // Returns the transactions in the block.
+    pub fn transactions(&self) -> &Vec<TransactionJSON> {
+        &self.transactions
+    }
+
+    // Returns the block timestamp
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
+}
+
+impl TryFrom<Map<String, Value>> for BlockJSON {
+    type Error = anyhow::Error;
+
+    fn try_from(json: serde_json::Map<String, serde_json::Value>) -> std::result::Result<Self, Self::Error> {
+        let metadata = json["header"]["metadata"].clone();
         // Get the block height.
-        let height = match json["header"]["metadata"]["height"].as_u64() {
+        let height = match metadata["height"].as_u64() {
             Some(height) => height as u32,
             None => bail!("Invalid block height"),
         };
@@ -43,20 +69,16 @@ impl BlockJSON {
                 .collect::<Result<Vec<_>>>()?,
             None => bail!("Invalid transactions"),
         };
+        // Get the block timestamp.
+        let timestamp = match metadata["timestamp"].as_u64() {
+            Some(timestamp) => timestamp,
+            None => bail!("Invalid block timestamp"),
+        };
         Ok(Self {
             height,
             transactions,
+            timestamp,
         })
-    }
-
-    // Returns the block height.
-    pub fn height(&self) -> u32 {
-        self.height
-    }
-
-    // Returns the transactions in the block.
-    pub fn transactions(&self) -> &Vec<TransactionJSON> {
-        &self.transactions
     }
 }
 
