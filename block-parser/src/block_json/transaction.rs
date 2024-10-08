@@ -67,8 +67,11 @@ impl TransactionJSON {
             Some(type_) => type_.to_string(),
             None => bail!("Invalid transaction type"),
         };
+
+        let transaction = json["transaction"].clone();
+
         // Get the transitions in the transaction.
-        let transitions = match json["transaction"]["type"].as_str() {
+        let mut transitions = match transaction["type"].as_str() {
             Some("execute") => match json["transaction"]["execution"]["transitions"].as_array() {
                 Some(transitions) => transitions
                     .iter()
@@ -78,6 +81,11 @@ impl TransactionJSON {
             },
             _ => Vec::new(),
         };
+
+        if transaction["fee"]["transition"].as_object().is_some() {
+            transitions.push(TransitionJSON::new(transaction["fee"]["transition"].clone())?);
+        }
+
         Ok(Self {
             id,
             json,
