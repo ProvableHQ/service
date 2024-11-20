@@ -124,13 +124,11 @@ async fn main() -> Result<()> {
     println!("Using state root: {}", state_root);
 
     // Construct an `ExecuteRequest`.
-    // TODO: After Block Height 2,950,000 change block_height to be CONSENSUS_V2_HEIGHT
     let execute_request = ExecuteRequest::<CurrentNetwork> {
         function_authorization: authorize_response.function_authorization,
         fee_authorization: authorize_response.fee_authorization,
         state_root: Some(state_root),
         state_path: None,
-        block_height: None,
     };
 
     // Send the request.
