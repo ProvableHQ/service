@@ -25,6 +25,7 @@ pub struct ExecuteRequest<N: Network> {
     pub fee_authorization: Authorization<N>,
     pub state_root: Option<N::StateRoot>,
     pub state_path: Option<StatePath<N>>,
+    pub block_height: Option<u32>,
 }
 
 impl<N: Network> FromBytes for ExecuteRequest<N> {
@@ -44,11 +45,17 @@ impl<N: Network> FromBytes for ExecuteRequest<N> {
             1 => Some(StatePath::read_le(&mut reader)?),
             _ => return Err(error("Invalid state path flag")),
         };
+        let block_height = match u8::read_le(&mut reader)? {
+            0 => None,
+            1 => Some(u32::read_le(&mut reader)?),
+            _ => Some(0),
+        };
         Ok(Self {
             function_authorization,
             fee_authorization,
             state_root,
             state_path,
+            block_height,
         })
     }
 }

@@ -43,7 +43,7 @@ pub fn execute<N: Network>(bytes: Bytes) -> Result<Vec<u8>> {
 /// A helper function to load a Process and the necessary proving keys.
 pub fn load_process<N: Network>() -> Result<Process<N>> {
     // Load the process.
-    let process = Process::load()?;
+    let process = Process::load_testing_only()?;
     // Initialize the proving keys for the functions in credits.aleo.
     let credits_program = process.get_program("credits.aleo")?;
     for (function_name, _) in credits_program.functions() {

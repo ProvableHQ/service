@@ -55,8 +55,11 @@ impl ProcessVariant {
         // Get the state path.
         let state_path = execute_request.state_path;
 
+        // Get the block height.
+        let block_height = execute_request.block_height;
+
         // Construct the query.
-        let query = StaticQuery::<N>::new(state_root, state_path);
+        let query = StaticQuery::<N>::new(state_root, state_path, block_height);
 
         // Construct the locator of the main function.
         let locator = {

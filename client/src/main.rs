@@ -129,6 +129,7 @@ async fn main() -> Result<()> {
         fee_authorization: authorize_response.fee_authorization,
         state_root: Some(state_root),
         state_path: None,
+        block_height: None,
     };
 
     // Send the request.
