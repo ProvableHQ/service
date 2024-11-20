@@ -45,10 +45,9 @@ impl<N: Network> FromBytes for ExecuteRequest<N> {
             1 => Some(StatePath::read_le(&mut reader)?),
             _ => return Err(error("Invalid state path flag")),
         };
-        let block_height = match u8::read_le(&mut reader)? {
-            0 => None,
-            1 => Some(u32::read_le(&mut reader)?),
-            _ => Some(0),
+        let block_height = match u32::read_le(&mut reader)? {
+            None => None,
+            _ => Some(u32::read_le(&mut reader)?)
         };
         Ok(Self {
             function_authorization,
