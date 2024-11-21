@@ -29,7 +29,11 @@ pub struct StaticQuery<N: Network> {
 }
 
 impl<N: Network> StaticQuery<N> {
-    pub fn new(state_root: Option<N::StateRoot>, state_path: Option<StatePath<N>>, block_height: u32) -> Self {
+    pub fn new(
+        state_root: Option<N::StateRoot>,
+        state_path: Option<StatePath<N>>,
+        block_height: u32,
+    ) -> Self {
         Self {
             state_root,
             state_path,
