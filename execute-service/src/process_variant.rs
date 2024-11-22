@@ -56,7 +56,7 @@ impl ProcessVariant {
         let state_path = execute_request.state_path;
 
         // Construct the query.
-        // TODO: After Block Height 2,950,000 change block_height to be CONSENSUS_V2_HEIGHT
+        // TODO: After Block Height 2,800,000 change block_height to be CONSENSUS_V2_HEIGHT
         let query = StaticQuery::<N>::new(state_root, state_path, 0u32);
 
         // Construct the locator of the main function.
