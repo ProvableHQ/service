@@ -15,6 +15,7 @@
 // along with the Aleo SDK library. If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
+use snarkvm::prelude::ConsensusVersion;
 
 pub enum ProcessVariant {
     MainnetV0(Process<MainnetV0>),
@@ -56,7 +57,11 @@ impl ProcessVariant {
         let state_path = execute_request.state_path;
 
         // Construct the query.
-        let query = StaticQuery::<N>::new(state_root, state_path, MainnetV0::CONSENSUS_V2_HEIGHT);
+        let query = StaticQuery::<N>::new(
+            state_root,
+            state_path,
+            N::CONSENSUS_HEIGHT(ConsensusVersion::V3).unwrap(),
+        );
 
         // Construct the locator of the main function.
         let locator = {
