@@ -44,6 +44,7 @@ impl<N: Network> FromBytes for ExecuteRequest<N> {
             1 => Some(StatePath::read_le(&mut reader)?),
             _ => return Err(error("Invalid state path flag")),
         };
+
         Ok(Self {
             function_authorization,
             fee_authorization,

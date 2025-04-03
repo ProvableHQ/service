@@ -9,7 +9,11 @@ members = [
 ]
 
 [workspace.dependencies]
-snarkvm = { git = "https://github.com/AleoNet/snarkVM.git", rev = "02994a1" }
+
+[workspace.dependencies.snarkvm]
+#git = "https://github.com/ProvableHQ/snarkVM.git"
+#rev = "57bfe32"
+version = "=1.5.0"
 #snarkvm = { path = "../snarkVM" }
 
 [profile.release]

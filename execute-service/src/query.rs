@@ -25,13 +25,19 @@ use snarkvm::prelude::Field;
 pub struct StaticQuery<N: Network> {
     pub state_root: Option<N::StateRoot>,
     pub state_path: Option<StatePath<N>>,
+    pub block_height: u32,
 }
 
 impl<N: Network> StaticQuery<N> {
-    pub fn new(state_root: Option<N::StateRoot>, state_path: Option<StatePath<N>>) -> Self {
+    pub fn new(
+        state_root: Option<N::StateRoot>,
+        state_path: Option<StatePath<N>>,
+        block_height: u32,
+    ) -> Self {
         Self {
             state_root,
             state_path,
+            block_height,
         }
     }
 }
@@ -58,5 +64,13 @@ impl<N: Network> QueryTrait<N> for StaticQuery<N> {
         self.state_path
             .clone()
             .ok_or_else(|| anyhow!("State path is not set."))
+    }
+
+    fn current_block_height(&self) -> Result<u32> {
+        Ok(self.block_height)
+    }
+
+    async fn current_block_height_async(&self) -> Result<u32> {
+        Ok(self.block_height)
     }
 }
