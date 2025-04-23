@@ -45,7 +45,7 @@ pub fn load_process<N: Network>() -> Result<Process<N>> {
     // Load the process.
     let process = Process::load()?;
     // Initialize the proving keys for the functions in credits.aleo.
-    let credits_program = process.get_program("credits.aleo")?;
+    let credits_program = Program::credits()?;
     for (function_name, _) in credits_program.functions() {
         // Get the proving key. This method will load the proving key if it does not exist.
         let _ = process.get_proving_key("credits.aleo", function_name)?;
