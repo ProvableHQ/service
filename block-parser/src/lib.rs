@@ -130,12 +130,12 @@ pub fn process_block_transactions(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use snarkvm::prelude::{CanaryV0, TestnetV0};
+    // use super::*;
+    // use snarkvm::prelude::{CanaryV0};
 
-    use std::fs::File;
+    // use std::fs::File;
 
-    type CurrentNetwork = CanaryV0;
+    // type CurrentNetwork = CanaryV0;
 
     // #[test]
     // fn test_dont_add_bonded_map() {
