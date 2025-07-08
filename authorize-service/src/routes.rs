@@ -51,8 +51,8 @@ pub fn authorize_route<N: Network>() -> impl Filter<Extract = impl Reply, Error 
 }
 
 // POST /authorize_signed
-pub fn authorize_signed_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone
-{
+pub fn authorize_signed_route<N: Network>(
+) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::post()
         .and(warp::path("authorize_signed"))
         .and(warp::path::end())

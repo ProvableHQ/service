@@ -18,11 +18,12 @@ use super::*;
 
 // Initialize a thread-local `ProcessVariant`.
 thread_local! {
-    pub static PROCESS: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
+    pub static PROCESS1: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
+    pub static PROCESS2: RefCell<Option<ProcessVariant>> = const { RefCell::new(None) };
 }
 
 pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
-    PROCESS.with(|process| {
+    PROCESS1.with(|process| {
         // Initialize the process if it is not already initialized.
         if process.borrow().is_none() {
             *process.borrow_mut() = match N::ID {
@@ -47,7 +48,7 @@ pub fn authorize<N: Network>(bytes: Bytes) -> Result<Value> {
 }
 
 pub fn authorize_signed<N: Network>(bytes: Bytes) -> Result<Value> {
-    PROCESS.with(|process| {
+    PROCESS2.with(|process| {
         // Initialize the process if it is not already initialized.
         if process.borrow().is_none() {
             *process.borrow_mut() = match N::ID {

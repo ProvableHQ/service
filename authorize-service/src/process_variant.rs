@@ -105,15 +105,10 @@ impl ProcessVariant {
         let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
 
         // Authorize the function.
-        let authorization = process.authorize_request::<A, _>(
-            request.request,
-            rng,
-        )?;
+        let authorization = process.authorize_request::<A, _>(request.request, rng)?;
 
         // Construct the response.
-        let response = AuthorizeSignedResponse::<N> {
-            authorization,
-        };
+        let response = AuthorizeSignedResponse::<N> { authorization };
 
         // Return the response as JSON.
         Ok(serde_json::to_value(response)?)

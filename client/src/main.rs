@@ -16,7 +16,8 @@
 
 use snarkvm::ledger::block::Transaction;
 use snarkvm::prelude::{
-    Field, FromBytes, Identifier, Network, PrivateKey, ProgramID, ToBytes, Uniform, Value, U64, Request, ValueType, Literal,
+    Field, FromBytes, Identifier, Literal, Network, PrivateKey, ProgramID, Request, ToBytes,
+    Uniform, Value, ValueType, U64,
 };
 
 use authorize_service::*;
@@ -101,7 +102,8 @@ async fn main() -> Result<()> {
             amount_in_microcredits,
             base_fee_in_microcredits,
             priority_fee_in_microcredits,
-        ).await
+        )
+        .await
     } else {
         authorize_execute(
             &client,
@@ -111,7 +113,8 @@ async fn main() -> Result<()> {
             base_fee_in_microcredits,
             priority_fee_in_microcredits,
             rng,
-        ).await
+        )
+        .await
     }
 }
 
@@ -240,18 +243,25 @@ async fn authorize_execute(
     let function_name = Identifier::from_str("transfer_public")?;
     let is_root = true;
     let root_tvk = None;
-    let inputs = vec![
-        recipient,
-        amount_in_microcredits,
+    let inputs = vec![recipient, amount_in_microcredits];
+    let input_types = [
+        ValueType::from_str("address.public").unwrap(),
+        ValueType::from_str("u64.public").unwrap(),
     ];
-    let input_types = [ValueType::from_str("address.public").unwrap(), ValueType::from_str("u64.public").unwrap()];
     // Compute the request.
-    let request = Request::sign(&private_key, program_id, function_name, inputs.into_iter(), &input_types, root_tvk, is_root, rng)?;
+    let request = Request::sign(
+        &private_key,
+        program_id,
+        function_name,
+        inputs.into_iter(),
+        &input_types,
+        root_tvk,
+        is_root,
+        rng,
+    )?;
 
     // Construct an `AuthorizeSignRequest`.
-    let authorize_request = AuthorizeSignedRequest::<CurrentNetwork> {
-        request,
-    };
+    let authorize_request = AuthorizeSignedRequest::<CurrentNetwork> { request };
 
     // Send the request.
     let response = client
@@ -262,7 +272,11 @@ async fn authorize_execute(
 
     // If the request was successful, deserialize the response as an `AuthorizeSignedResponse`.
     let authorize_response = match response.status().is_success() {
-        true => response.json::<AuthorizeSignedResponse<CurrentNetwork>>().await?,
+        true => {
+            response
+                .json::<AuthorizeSignedResponse<CurrentNetwork>>()
+                .await?
+        }
         false => bail!(
             "Authorization request failed with status: {}",
             response.status()
@@ -287,12 +301,19 @@ async fn authorize_execute(
         ValueType::from_str("field.public").unwrap(),
     ];
     // Compute the request.
-    let request = Request::sign(&private_key, program_id, function_name, inputs.into_iter(), &input_types, root_tvk, is_root, rng)?;
+    let request = Request::sign(
+        &private_key,
+        program_id,
+        function_name,
+        inputs.into_iter(),
+        &input_types,
+        root_tvk,
+        is_root,
+        rng,
+    )?;
 
     // Construct an `AuthorizeSignRequest`.
-    let authorize_request = AuthorizeSignedRequest::<CurrentNetwork> {
-        request,
-    };
+    let authorize_request = AuthorizeSignedRequest::<CurrentNetwork> { request };
 
     // Send the request.
     let response = client
@@ -303,7 +324,11 @@ async fn authorize_execute(
 
     // If the request was successful, deserialize the response as an `AuthorizeSignedResponse`.
     let authorize_fee_response = match response.status().is_success() {
-        true => response.json::<AuthorizeSignedResponse<CurrentNetwork>>().await?,
+        true => {
+            response
+                .json::<AuthorizeSignedResponse<CurrentNetwork>>()
+                .await?
+        }
         false => bail!(
             "Authorization request failed with status: {}",
             response.status()
