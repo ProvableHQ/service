@@ -29,10 +29,10 @@ impl InputJSON {
             None => bail!("Invalid input ID"),
         };
         // Get the value of the input.
-        let value = match json.get("value").and_then(|v| v.as_str()) {
-            Some(value) => Some(value.to_string()),
-            None => None,
-        };
+        let value = json
+            .get("value")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
         Ok(Self { type_, id, value })
     }
 

@@ -35,6 +35,12 @@ pub struct AuthorizeRequest<N: Network> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuthorizeSignedRequest<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub request: snarkvm::prelude::Request<N>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignRequest<N: Network> {
     #[serde(bound(deserialize = ""))]
     pub private_key: PrivateKey<N>,

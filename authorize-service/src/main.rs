@@ -33,6 +33,7 @@ async fn run<N: Network>(port: u16) {
 
     let routes = keygen_route::<N>()
         .or(authorize_route::<N>())
+        .or(authorize_signed_route::<N>())
         .or(sign_route::<N>())
         .or(verify_route::<N>())
         .with(warp::trace(

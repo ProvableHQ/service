@@ -12,6 +12,10 @@ path = "../execute-service"
 [dependencies.anyhow]
 version = "1.0.75"
 
+[dependencies.clap]
+version = "4.3"
+features = ["derive"]
+
 [dependencies.rand_chacha]
 version = "0.3.1"
 
@@ -24,6 +28,7 @@ features = [ "full" ]
 
 [dependencies.reqwest]
 version = "0.11.22"
+features = [ "json" ]
 
 [dependencies.warp]
 version = "0.3.6"
