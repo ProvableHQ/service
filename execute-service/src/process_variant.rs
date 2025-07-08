@@ -74,7 +74,7 @@ impl ProcessVariant {
         let (_, mut trace) = process.execute::<A, _>(function_authorization, rng)?;
 
         // Prepare the trace.
-        trace.prepare(query.clone())?;
+        trace.prepare(&query.clone())?;
 
         // Compute the proof and construct the execution.
         let execution = trace.prove_execution::<A, _>(&locator, VarunaVersion::V2, rng)?;
@@ -83,7 +83,7 @@ impl ProcessVariant {
         let (_, mut trace) = process.execute::<A, _>(fee_authorization, rng)?;
 
         // Prepare the trace.
-        trace.prepare(query)?;
+        trace.prepare(&query)?;
 
         // Compute the proof and construct the fee.
         let fee = trace.prove_fee::<A, _>(VarunaVersion::V2, rng)?;

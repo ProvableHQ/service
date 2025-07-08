@@ -146,7 +146,7 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         let withdrawal = inputs.get(1).unwrap().value().to_owned().unwrap();
                         let inputs_value = inputs.get(2).unwrap().value();
                         let amount = match inputs_value {
-                            Some(v) => *U64::<N>::from_str(&v)?,
+                            Some(v) => *U64::<N>::from_str(v)?,
                             None => bail!("Invalid JSON object"),
                         };
                         // Add the `bond_public` operation to the credits transactions.
@@ -187,7 +187,7 @@ pub fn decode_block_unchecked<N: Network>(string: &str) -> Result<(Vec<CreditsOp
                         };
                         let inputs_value = inputs.get(1).unwrap().value();
                         let amount = match inputs_value {
-                            Some(v) => *U64::<N>::from_str(&v)?,
+                            Some(v) => *U64::<N>::from_str(v)?,
                             None => bail!("Invalid JSON object"),
                         };
                         // Add the `unbond_public` operation to the credits transactions.
