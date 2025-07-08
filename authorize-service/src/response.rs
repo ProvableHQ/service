@@ -31,6 +31,12 @@ pub struct AuthorizeResponse<N: Network> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuthorizeSignedResponse<N: Network> {
+    #[serde(bound(deserialize = ""))]
+    pub authorization: Authorization<N>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignResponse {
     pub signed_message: Vec<u8>,
 }

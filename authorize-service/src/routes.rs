@@ -50,6 +50,23 @@ pub fn authorize_route<N: Network>() -> impl Filter<Extract = impl Reply, Error 
         })
 }
 
+// POST /authorize_signed
+pub fn authorize_signed_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone
+{
+    warp::post()
+        .and(warp::path("authorize_signed"))
+        .and(warp::path::end())
+        .and(warp::body::content_length_limit(32 * 1024)) // 32 KiB
+        .and(warp::body::bytes())
+        .and_then(|bytes: Bytes| async move {
+            let response = match tokio_rayon::spawn_fifo(|| authorize_signed::<N>(bytes)).await {
+                Ok(response) => response,
+                Err(_) => return Err(warp::reject()),
+            };
+            Ok(warp::reply::json(&response))
+        })
+}
+
 // POST /sign
 pub fn sign_route<N: Network>() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::post()

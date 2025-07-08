@@ -78,3 +78,44 @@ impl ProcessVariant {
         Ok(serde_json::to_value(response)?)
     }
 }
+
+impl ProcessVariant {
+    pub fn authorize_request(&self, bytes: &[u8]) -> Result<Value> {
+        match self {
+            ProcessVariant::MainnetV0(process) => {
+                Self::handle_authorize_request::<AleoV0, MainnetV0>(process, bytes)
+            }
+            ProcessVariant::TestnetV0(process) => {
+                Self::handle_authorize_request::<AleoTestnetV0, TestnetV0>(process, bytes)
+            }
+            ProcessVariant::CanaryV0(process) => {
+                Self::handle_authorize_request::<AleoCanaryV0, CanaryV0>(process, bytes)
+            }
+        }
+    }
+
+    fn handle_authorize_request<A: Aleo<Network = N>, N: Network>(
+        process: &Process<N>,
+        bytes: &[u8],
+    ) -> Result<Value> {
+        // Deserialize the request.
+        let request = serde_json::from_slice::<AuthorizeSignedRequest<N>>(bytes)?;
+
+        // Initialize the RNG.
+        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+
+        // Authorize the function.
+        let authorization = process.authorize_request::<A, _>(
+            request.request,
+            rng,
+        )?;
+
+        // Construct the response.
+        let response = AuthorizeSignedResponse::<N> {
+            authorization,
+        };
+
+        // Return the response as JSON.
+        Ok(serde_json::to_value(response)?)
+    }
+}
