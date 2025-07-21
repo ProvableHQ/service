@@ -9,7 +9,6 @@ members = [
 ]
 
 [workspace.dependencies]
-smallvec = "=1.14.0"
 
 [workspace.dependencies.snarkvm]
 #git = "https://github.com/ProvableHQ/snarkVM.git"
