@@ -283,6 +283,9 @@ async fn authorize_execute(
         ),
     };
 
+    // NOTE: in this example, it is critical for security reasons that the
+    // client computes the execution id, and checks that the tcm/scm matches the
+    // request.
     let execution_id = authorize_response.authorization.to_execution_id()?;
 
     // Construct the inputs for the fee request.
