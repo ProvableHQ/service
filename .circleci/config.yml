@@ -51,7 +51,7 @@ commands:
 jobs:
   fmt:
     docker:
-      - image: cimg/rust:1.83
+      - image: cimg/rust:1.88
     resource_class: xlarge
     steps:
       - checkout
