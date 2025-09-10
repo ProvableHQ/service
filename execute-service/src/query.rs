@@ -66,6 +66,28 @@ impl<N: Network> QueryTrait<N> for StaticQuery<N> {
             .ok_or_else(|| anyhow!("State path is not set."))
     }
 
+    fn get_state_paths_for_commitments(
+        &self,
+        commitments: &[Field<N>],
+    ) -> Result<Vec<StatePath<N>>> {
+        let state_path = self
+            .state_path
+            .clone()
+            .ok_or_else(|| anyhow!("State path is not set."))?;
+        Ok(vec![state_path; commitments.len()])
+    }
+
+    async fn get_state_paths_for_commitments_async(
+        &self,
+        commitments: &[Field<N>],
+    ) -> Result<Vec<StatePath<N>>> {
+        let state_path = self
+            .state_path
+            .clone()
+            .ok_or_else(|| anyhow!("State path is not set."))?;
+        Ok(vec![state_path; commitments.len()])
+    }
+
     fn current_block_height(&self) -> Result<u32> {
         Ok(self.block_height)
     }
