@@ -77,7 +77,7 @@ fn bench_authorize(c: &mut Criterion) {
         )),
         Value::from(Literal::U64(U64::new(100))),
     ];
-    let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+    let rng = &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng());
 
     c.bench_function("general_authorize", move |b| {
         b.iter_batched(

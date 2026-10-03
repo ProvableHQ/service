@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
     let client = Client::new();
 
     // Initialize a random number generator.
-    let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+    let rng = &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng());
 
     // Generate a seed.
     let seed = Field::<CurrentNetwork>::rand(rng);

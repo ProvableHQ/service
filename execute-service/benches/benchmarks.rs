@@ -43,7 +43,7 @@ fn bench_execute_transfer_public(c: &mut Criterion) {
         )),
         Value::from(Literal::U64(U64::new(100))),
     ];
-    let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+    let rng = &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng());
 
     let function_authorization = process
         .authorize::<AleoV0, _>(&private_key, program_id, function_name, inputs.iter(), rng)

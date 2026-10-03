@@ -25,7 +25,7 @@ pub fn sign<N: Network>(request: SignRequest<N>) -> Result<SignResponse> {
     let signature = Signature::<N>::sign_bytes(
         &request.private_key,
         &request.message,
-        &mut rand_chacha::ChaCha20Rng::from_entropy(),
+        &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng()),
     )?;
 
     Ok(SignResponse {
