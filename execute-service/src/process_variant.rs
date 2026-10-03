@@ -46,7 +46,7 @@ impl ProcessVariant {
         // Deserialize the `ExecuteRequest`.
         let execute_request = ExecuteRequest::<N>::from_bytes_le(bytes)?;
         // Initialize an RNG.
-        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+        let rng = &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng());
 
         // Get the function authorization.
         let function_authorization = execute_request.function_authorization;

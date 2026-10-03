@@ -45,7 +45,7 @@ impl ProcessVariant {
         let request = serde_json::from_slice::<AuthorizeRequest<N>>(bytes)?;
 
         // Initialize the RNG.
-        let rng = &mut rand_chacha::ChaCha20Rng::from_entropy();
+        let rng = &mut rand_chacha::ChaCha20Rng::from_rng(&mut rand::rng());
 
         // Authorize the function.
         let function_authorization = process.authorize::<A, _>(

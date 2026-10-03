@@ -485,6 +485,9 @@ mod tests {
 
     #[test]
     fn test_decode_block() {
+        type CurrentNetwork = snarkvm::prelude::MainnetV0;
+
+        // Source: https://api.provable.com/v2/mainnet/block/19253033
         let block_json = include_str!("../tests/test_bond_public/block.json");
         let (operations_checked, height_checked) =
             decode_block::<CurrentNetwork>(block_json).unwrap();
@@ -492,6 +495,11 @@ mod tests {
             decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
         assert_eq!(operations_checked, operations_unchecked);
         assert_eq!(height_checked, height_unchecked);
+        assert_eq!(height_checked, 19_253_033);
+        assert!(matches!(
+            operations_checked.as_slice(),
+            [CreditsOperations::BondPublic { .. }]
+        ));
 
         // TODO: Update these with valid blocks from CanaryV0.
         // These blocks have old `bond_public` transactions that are no longer valid (needs 3 inputs instead of 2).
@@ -505,6 +513,7 @@ mod tests {
         // let operations_unchecked = decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
         // assert_eq!(operations_checked, operations_unchecked);
 
+        // Source: https://api.provable.com/v2/mainnet/block/1
         let block_json = include_str!("../tests/test_empty_block/block.json");
         let (operations_checked, height_checked) =
             decode_block::<CurrentNetwork>(block_json).unwrap();
@@ -512,6 +521,7 @@ mod tests {
             decode_block_unchecked::<CurrentNetwork>(block_json).unwrap();
         assert_eq!(operations_checked, operations_unchecked);
         assert_eq!(height_checked, height_unchecked);
+        assert_eq!(height_checked, 1);
         assert_eq!(operations_checked.len(), 0);
     }
 
