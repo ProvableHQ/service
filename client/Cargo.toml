@@ -31,3 +31,6 @@ features = [ "json" ]
 
 [dependencies.warp]
 version = "0.3.6"
+
+[dev-dependencies.serde_json]
+version = "1.0"

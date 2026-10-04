@@ -70,6 +70,10 @@ impl<N: Network> QueryTrait<N> for StaticQuery<N> {
         &self,
         commitments: &[Field<N>],
     ) -> Result<Vec<StatePath<N>>> {
+        if commitments.is_empty() {
+            return Ok(Vec::new());
+        }
+
         let state_path = self
             .state_path
             .clone()
@@ -81,11 +85,7 @@ impl<N: Network> QueryTrait<N> for StaticQuery<N> {
         &self,
         commitments: &[Field<N>],
     ) -> Result<Vec<StatePath<N>>> {
-        let state_path = self
-            .state_path
-            .clone()
-            .ok_or_else(|| anyhow!("State path is not set."))?;
-        Ok(vec![state_path; commitments.len()])
+        self.get_state_paths_for_commitments(commitments)
     }
 
     fn current_block_height(&self) -> Result<u32> {
@@ -94,5 +94,42 @@ impl<N: Network> QueryTrait<N> for StaticQuery<N> {
 
     async fn current_block_height_async(&self) -> Result<u32> {
         Ok(self.block_height)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[tokio::test]
+    async fn state_paths_are_required_only_for_nonempty_commitments() {
+        let query = StaticQuery::<MainnetV0>::new(None, None, 0);
+        assert!(query
+            .get_state_paths_for_commitments(&[])
+            .unwrap()
+            .is_empty());
+        assert!(query
+            .get_state_paths_for_commitments_async(&[])
+            .await
+            .unwrap()
+            .is_empty());
+
+        let commitments = [Field::from_str("1field").unwrap()];
+        assert_eq!(
+            query
+                .get_state_paths_for_commitments(&commitments)
+                .unwrap_err()
+                .to_string(),
+            "State path is not set."
+        );
+        assert_eq!(
+            query
+                .get_state_paths_for_commitments_async(&commitments)
+                .await
+                .unwrap_err()
+                .to_string(),
+            "State path is not set."
+        );
     }
 }
