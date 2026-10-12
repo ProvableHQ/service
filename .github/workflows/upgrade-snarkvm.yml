@@ -1,0 +1,113 @@
+name: Upgrade snarkVM
+
+# Dispatched by ProvableHQ/snarkos-releaser when a snarkOS release pins a newer snarkVM.
+on:
+  workflow_dispatch:
+    inputs:
+      snarkos_tag:
+        description: 'snarkOS release tag (e.g., testnet-v4.12.0, v4.12.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Open snarkVM upgrade PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.snarkos_tag }}
+        run: |
+          # Pinned snarkVM version from a Cargo.toml: version = "=X.Y.Z" under [workspace.dependencies.snarkvm]
+          snarkvm_version() {
+            awk '/^\[workspace\.dependencies\.snarkvm\]/{f=1;next} /^\[/{f=0} f && /^version[[:space:]]*=/{gsub(/version|[[:space:]"=]/,""); print; exit}' "$1"
+          }
+
+          gh api "repos/ProvableHQ/snarkOS/contents/Cargo.toml?ref=${TAG}" --jq .content | base64 -d > "$RUNNER_TEMP/snarkos.toml"
+          NEW=$(snarkvm_version "$RUNNER_TEMP/snarkos.toml")
+          CUR=$(snarkvm_version Cargo.toml)
+          echo "snarkVM in snarkOS ${TAG}: ${NEW:-<none>}; in service: ${CUR:-<none>}"
+
+          if [ -z "$NEW" ] || [ -z "$CUR" ]; then
+            echo "::error::Could not resolve a crates.io snarkVM version pin (git rev?)"
+            exit 1
+          fi
+          if [ "$NEW" = "$CUR" ] || [ "$(printf '%s\n%s\n' "$NEW" "$CUR" | sort -V | tail -1)" != "$NEW" ]; then
+            echo "Already on snarkVM ${CUR}, nothing to do"
+            exit 0
+          fi
+
+          # Branch is keyed on the snarkVM version so testnet and mainnet tags share one PR.
+          BRANCH="upgrade/snarkvm-v${NEW}"
+          EXISTING=$(gh pr list --head "$BRANCH" --state all --json url --jq '.[0].url // ""')
+          if [ -n "$EXISTING" ]; then
+            echo "PR already exists: $EXISTING"
+            exit 0
+          fi
+
+          # Flag changes to the snarkVM code that authorize-service / execute-service depend on.
+          SIGNING_PATHS=(
+            console/account
+            circuit/account
+            console/program/src/request
+            circuit/program/src/request
+            synthesizer/process/src/authorize.rs
+            synthesizer/process/src/stack/authorize.rs
+            synthesizer/process/src/execute.rs
+            synthesizer/process/src/stack/execute.rs
+            synthesizer/process/src/verify_fee.rs
+            synthesizer/src/vm/authorize.rs
+            synthesizer/src/vm/execute.rs
+            ledger/block/src/transaction
+            ledger/block/src/transition
+            ':(exclude,glob)**/tests/**'
+            ':(exclude,glob)**/Cargo.toml'
+          )
+          git clone --quiet --filter=blob:none --no-checkout https://github.com/ProvableHQ/snarkVM.git "$RUNNER_TEMP/snarkvm"
+          SIGNING_FILES=$(git -C "$RUNNER_TEMP/snarkvm" diff --name-only "v${CUR}" "v${NEW}" -- "${SIGNING_PATHS[@]}")
+          SIGNING_COMMITS=$(git -C "$RUNNER_TEMP/snarkvm" log --no-merges --format='- %s (%h)' "v${CUR}..v${NEW}" -- "${SIGNING_PATHS[@]}")
+
+          {
+            echo "## snarkVM v${CUR} → v${NEW}"
+            echo
+            echo "Dispatched by snarkos-releaser for snarkOS [\`${TAG}\`](https://github.com/ProvableHQ/snarkOS/releases/tag/${TAG})."
+            echo "Full snarkVM diff: https://github.com/ProvableHQ/snarkVM/compare/v${CUR}...v${NEW}"
+            echo
+            echo "### Transaction signing"
+            echo
+            if [ -n "$SIGNING_FILES" ]; then
+              echo ":warning: **Transaction signing code changed in snarkVM.** Review \`authorize-service\` (authorize / \`sign_bytes\`) and \`execute-service\`, and test signing end to end before merging."
+              echo
+              echo "<details><summary>Changed files ($(echo "$SIGNING_FILES" | wc -l | tr -d ' '))</summary>"
+              echo
+              echo "$SIGNING_FILES" | sed 's/^/- `/; s/$/`/'
+              echo
+              echo "</details>"
+              echo
+              echo "Commits:"
+              echo "$SIGNING_COMMITS"
+            else
+              echo "No changes in signing-related snarkVM paths (account keys/signatures, requests, authorize/execute, transactions/transitions)."
+            fi
+            echo
+            echo "_Only the version pin is bumped; fix any API breakage on this branch._"
+          } > "$RUNNER_TEMP/pr-body.md"
+          cat "$RUNNER_TEMP/pr-body.md"
+
+          TITLE="Upgrade snarkVM to v${NEW}"
+          [ -n "$SIGNING_FILES" ] && TITLE="${TITLE} (signing changes)"
+
+          sed -i "s/^version = \"=${CUR}\"/version = \"=${NEW}\"/" Cargo.toml
+          git diff --exit-code --quiet Cargo.toml && { echo "::error::Failed to bump snarkVM pin in Cargo.toml"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b "$BRANCH"
+          git commit -q -am "Upgrade snarkVM to v${NEW}"
+          git push -q origin "$BRANCH"
+          gh pr create --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md"
