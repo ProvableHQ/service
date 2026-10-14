@@ -13,7 +13,7 @@ members = [
 [workspace.dependencies.snarkvm]
 #git = "https://github.com/ProvableHQ/snarkVM.git"
 #rev = "f9b7b8a"
-version = "=4.11.0"
+version = "=4.12.0"
 #snarkvm = { path = "../snarkVM" }
 
 [profile.release]
