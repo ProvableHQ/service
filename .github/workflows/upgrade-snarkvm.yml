@@ -105,9 +105,52 @@ jobs:
 
           sed -i "s/^version = \"=${CUR}\"/version = \"=${NEW}\"/" Cargo.toml
           git diff --exit-code --quiet Cargo.toml && { echo "::error::Failed to bump snarkVM pin in Cargo.toml"; exit 1; }
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -q -b "$BRANCH"
-          git commit -q -am "Upgrade snarkVM to v${NEW}"
-          git push -q origin "$BRANCH"
+
+          # The commit is written with the GitHub API, not the git CLI, so that
+          # GitHub signs it. A git CLI commit is unsigned whatever the token,
+          # and a "Require signed commits" rule blocks the merge of a pull
+          # request carrying one. The merge method does not matter: GitHub
+          # checks every commit the pull request introduces, so a squash merge
+          # is blocked too.
+          BASE_SHA="$(git rev-parse HEAD)"
+
+          # createCommitOnBranch sends whole files. This step only ever rewrites
+          # Cargo.toml, so a deletion means something unexpected. The loop
+          # mirrors the `git commit -a` this replaced: whatever is modified goes
+          # in, rather than a hardcoded path that could silently drop a file.
+          if [ -n "$(git diff --name-only --diff-filter=D)" ]; then
+            echo "::error::Refusing to commit: this step cannot carry file deletions"
+            exit 1
+          fi
+
+          ADDITIONS='[]'
+          while IFS= read -r CHANGED; do
+            ADDITIONS="$(jq -c \
+              --arg path "${CHANGED}" \
+              --arg contents "$(base64 -w0 "${CHANGED}")" \
+              '. + [{path: $path, contents: $contents}]' <<<"${ADDITIONS}")"
+          done < <(git diff --name-only)
+
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/heads/${BRANCH}" \
+            -f sha="${BASE_SHA}" >/dev/null
+
+          jq -nc \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg branch "${BRANCH}" \
+            --arg oid "${BASE_SHA}" \
+            --arg msg "Upgrade snarkVM to v${NEW}" \
+            --argjson additions "${ADDITIONS}" \
+            '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }",
+              variables: {
+                input: {
+                  branch: { repositoryNameWithOwner: $repo, branchName: $branch },
+                  expectedHeadOid: $oid,
+                  message: { headline: $msg },
+                  fileChanges: { additions: $additions }
+                }
+              }
+            }' | gh api graphql --input -
+
           gh pr create --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md"
