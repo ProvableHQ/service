@@ -1,6 +1,13 @@
 name: Upgrade snarkVM
 
 # Dispatched by ProvableHQ/snarkos-releaser when a snarkOS release pins a newer snarkVM.
+#
+# Names the run after the tag it was dispatched for. Without this every run is
+# titled "Upgrade snarkVM", and snarkos-releaser check-progress.yml cannot tell
+# which release a run belongs to when it reports a target as waiting or failed.
+# Keep the tag in this string.
+run-name: Upgrade snarkVM for snarkOS ${{ inputs.snarkos_tag }}
+
 on:
   workflow_dispatch:
     inputs:
